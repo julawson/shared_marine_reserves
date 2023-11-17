@@ -1,0 +1,116 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(knitr)
+library(stargazer)
+library(reshape2)
+library(cowplot)
+library(akima)
+```
+
+# Cooperative Scenario (Sole Owner Both Patches Scenario)
+
+```{r}
+
+# Initialize data frame for storing results
+
+results_so <- tibble(
+  timestep = integer(), 
+  x_a_init = numeric(),
+  x_a = numeric(), 
+  h_a = numeric(), 
+  e_star_a = numeric(), 
+  x_b_init = numeric(),
+  x_b = numeric(), 
+  h_b = numeric(), 
+  e_star_b = numeric(),
+  NPV_a_star = numeric(),
+  NPV_b_star = numeric()
+)
+
+# Initialize variables to store NPV for each x_a and x_b combination
+NPV_a_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+NPV_b_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+names(NPV_a_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
+names(NPV_b_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
+
+counter <- 1 # Counter to store NPV in the right position of NPV_a_star_total and NPV_b_star_total
+
+# Grid search over x_a_grid and x_b_grid
+for(i in seq_along(x_a_grid)) {
+  for(j in seq_along(x_b_grid)) {
+    
+    # Initial stock values for this run
+    x_a <- x_a_grid[i]
+    x_b <- x_b_grid[j]
+    
+    # Storing initial values
+    x_a_init <- x_a_grid[i]
+    x_b_init <- x_b_grid[j]
+    
+    NPV_a_star <- 0
+    NPV_b_star <- 0
+    
+    for(t in 1:timesteps) {
+  
+  # Calculate e_star_a and e_star_b
+  e_star_values <- compute_e_star(x_a, x_b, p_a, c_a, mu_a, M_aa, sigma_a, D_aa, k_a, r_a, p_b, c_b, mu_b, M_ab, M_ba, sigma_b, D_ab, D_ba, delta)
+  
+  # Calculate harvest based on e_star
+  h_a_val = h_a(x_a, e_star_values$e_star_a)
+  h_b_val = h_b(x_b, e_star_values$e_star_b)
+  
+  # Escapement
+  e_star_a = e_a(x_a, h_a_val)
+  e_star_b = e_b(x_b, h_b_val)
+  
+  # Update stocks in each patch
+  x_a_new = next_x_a(e_star_a, e_star_b) - mu_a*M_aa*e_star_a - mu_b*M_ba*e_star_b + mu_a*M_aa*e_star_a + mu_b*M_ba*e_star_b
+  x_b_new = next_x_b(e_star_a, e_star_b) - mu_b*M_bb*e_star_b - mu_a*M_ab*e_star_a + mu_b*M_bb*e_star_b + mu_a*M_ab*e_star_a
+  
+  # Value
+  V_a_star = b_a(p_a, c_a) * (x_a - e_star_values$e_star_a) * delta^(t-1)
+  V_b_star = b_b(p_b, c_b) * (x_b - e_star_values$e_star_b) * delta^(t-1)
+      
+  # Update NPV
+  NPV_a_star <- NPV_a_star + V_a_star
+  NPV_b_star <- NPV_b_star + V_b_star
+  
+  # Save results including e_star_a and e_star_b
+  results_so <- results_so %>%
+    add_row(
+      timestep = t,
+      x_a_init = x_a_init,
+      x_a = x_a,
+      h_a = h_a_val,
+      x_b_init = x_b_init,
+      x_b = x_b,
+      h_b = h_b_val,
+      e_star_a = e_star_values$e_star_a,
+      e_star_b = e_star_values$e_star_b,
+      NPV_a_star = NPV_a_star,
+      NPV_b_star = NPV_b_star
+    )
+    
+  # Update the stock for next iteration
+  x_a <- x_a_new
+  x_b <- x_b_new
+  
+    }
+    
+# Store NPV for the current x_a and x_b combination
+    NPV_a_star_total[counter] <- NPV_a_star
+    NPV_b_star_total[counter] <- NPV_b_star
+    counter <- counter + 1
+  }
+}
+
+# View results
+print(results_so)
+
+df_results_so = results_so %>% filter(timestep==100) %>% select(-timestep)
+
+```

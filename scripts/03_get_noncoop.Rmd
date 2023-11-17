@@ -1,0 +1,94 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(knitr)
+library(stargazer)
+library(reshape2)
+library(cowplot)
+library(akima)
+```
+
+# Non-Cooperative Scenario
+
+```{r}
+
+# Initialize data frame for storing results
+
+results_non <- tibble(
+  timestep = integer(), 
+  x_a_init = numeric(),
+  x_a = numeric(), 
+  h_a = numeric(), 
+  e_hat_a = numeric(), 
+  x_b_init = numeric(),
+  x_b = numeric(), 
+  h_b = numeric(), 
+  e_hat_b = numeric(),
+  NPV_a_hat = numeric(),
+  NPV_b_hat = numeric()
+)
+
+# Initialize NPV variables
+NPV_a_hat <- 0
+NPV_b_hat <- 0
+
+# Storing initial values
+x_a_init <- x_a
+x_b_init <- x_b
+    
+for(t in 1:timesteps) {
+  
+  # Calculate e_hat_a and e_hat_b
+  e_hat_values <- compute_e_hat(x_a, x_b, mu_a, M_aa, sigma_a, D_aa, k_a, r_a, mu_b, M_bb, sigma_b, D_bb, k_b, r_b, delta)
+  
+  # Calculate harvest based on e_hat
+  h_a_val = h_a(x_a, e_hat_values$e_hat_a)
+  h_b_val = h_b(x_b, e_hat_values$e_hat_b)
+  
+  # Escapement
+  e_hat_a = e_a(x_a, h_a_val)
+  e_hat_b = e_b(x_b, h_b_val)
+  
+  # Update stocks in each patch
+  x_a_new = next_x_a(e_hat_a, e_hat_b) - mu_a*M_aa*e_hat_a - mu_b*M_ba*e_hat_b + mu_a*M_aa*e_hat_a + mu_b*M_ba*e_hat_b
+  x_b_new = next_x_b(e_hat_a, e_hat_b) - mu_b*M_bb*e_hat_b - mu_a*M_ab*e_hat_a + mu_b*M_bb*e_hat_b + mu_a*M_ab*e_hat_a
+  
+  # Value
+  V_a_hat = b_a(p_a, c_a) * (x_a - e_hat_values$e_hat_a) * delta^(t-1)
+  V_b_hat = b_b(p_b, c_b) * (x_b - e_hat_values$e_hat_b) * delta^(t-1)
+      
+  # Update NPV
+  NPV_a_hat <- NPV_a_hat + V_a_hat
+  NPV_b_hat <- NPV_b_hat + V_b_hat
+  
+  # Save results including e_hat_a and e_hat_b
+  results_non <- results_non %>%
+    add_row(
+      timestep = t,
+      x_a_init = x_a_init,
+      x_a = x_a,
+      h_a = h_a_val,
+      x_b_init = x_b_init,
+      x_b = x_b,
+      h_b = h_b_val,
+      e_hat_a = e_hat_values$e_hat_a,
+      e_hat_b = e_hat_values$e_hat_b,
+      NPV_a_hat = NPV_a_hat,
+      NPV_b_hat = NPV_b_hat
+    )
+    
+  # Update the stock for next iteration
+  x_a <- x_a_new
+  x_b <- x_b_new
+}
+
+
+# View results
+print(results_non)
+
+df_results_non = results_non %>% filter(timestep==100) %>% select(-timestep)
+
+```
