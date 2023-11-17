@@ -41,7 +41,12 @@ size_x_b = 10 #size of B
 
 T = 100 #time horizon for backward induction
 
-x_a_grid = seq(25.1464380189645, k_a,length.out=size_x_a)
-x_b_grid = seq(11.6291041955, k_b,length.out=size_x_b)
+small = 0.1
+
+x_a_grid = seq(11, k_a,length.out=size_x_a)
+x_b_grid = seq(21, k_b,length.out=size_x_b)
+
+x_a = 11
+x_b = 21
 
 ```
