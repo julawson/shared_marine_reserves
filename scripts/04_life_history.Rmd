@@ -1,0 +1,108 @@
+# Importing Allie Caughman's Database
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(knitr)
+library(stargazer)
+library(reshape2)
+library(cowplot)
+library(akima)
+#devtools::install_github("james-thorson/FishLife")
+library(FishLife)
+library(kableExtra)
+```
+
+```{r}
+
+lh_table = read.csv(here("data","filled_data2.csv")) 
+
+unique(lh_table$class2)
+
+# "1: mid/low" (mid home range / low larval duration)
+# "2: low/mid" (low home range / mid larval duration)
+# "3: mid/high" (mid home range / high larval duration)
+# "4: mid/veryhigh" (mid home range / very high larval duration)
+# "5: mid/mid" (mid home range / mid larval duration)
+# "6: high/mid" (high home range / mid larval duration)
+
+# Categories I'm interested in:
+# low adult movement / low larval dispersal = "2: low/mid" (low home range / mid larval duration)
+# More specifically PLD <1 month, PHR < -3
+
+lh_table_filter = lh_table %>% 
+  #filter(ocean == "Pacific") %>% 
+  filter(magnitude_homerange <= -3) %>%
+  filter(month_pld <= 1)
+
+# low adult movement / high larval dispersal = "3: mid/high" (mid home range / high larval duration)
+# More specifically PLD >3 months, PHR < -3
+
+lh_table_filter2 = lh_table %>% 
+  #filter(ocean == "Pacific") %>% 
+  filter(magnitude_homerange <= -3) %>%
+  filter(month_pld >=3)
+
+# high adult movement / low larval dispersal = "1: mid/low" (mid home range / low larval duration)
+# More specifically PLD <1.5 month, PHR > 2
+
+lh_table_filter3 = lh_table %>% 
+  #filter(ocean == "Pacific") %>% 
+  filter(magnitude_homerange >= 2) %>%
+  filter(month_pld <= 2) %>% 
+  mutate(ratio = home_range/pld)
+
+# high adult movement / high larval dispersal = "6: high/mid" (high home range / mid larval duration)
+# More specifically PLD >3 months,  PHR > 0
+
+lh_table_filter4 = lh_table %>% 
+  #filter(ocean == "Pacific") %>% 
+  filter(magnitude_homerange >= 0) %>%
+  filter(month_pld >= 3)
+
+candidate_sp = bind_rows(lh_table_filter, lh_table_filter2, lh_table_filter3, lh_table_filter4) %>% 
+  left_join(fishlife_pred, by = c("species")) %>% 
+  select(species, fb_name, length, r_fin, r_val, ocean, basin, home_range, pld, magnitude_homerange, month_pld, class, class2, class3) %>% 
+  mutate(ratio = home_range/pld)
+
+```
+
+```{r}
+# Using FishLife Database to Predict r
+
+Predict = Plot_taxa(Search_species(Genus="Lampris",Species="guttatus")$match_taxonomy, mfrow=c(2,2))
+knitr::kable(Predict[[1]]$Mean_pred, digits=3)
+Predict[[1]]$Mean_pred %>%
+  kbl() %>%
+  kable_styling()
+
+fishlife_pred <- data.frame(species = "Sebastes chlorostictus",r_val = "0.1136579") %>% 
+  add_row(species = "Sebastes rufus", r_val = "0.1136579") %>% 
+  add_row(species = "Sebastes jordani", r_val = "0.1566885") %>% 
+  add_row(species = "Thunnus maccoyii", r_val = "0.1237251") %>% 
+  add_row(species = "Epinephelus marginatus", r_val = "0.1164575") %>% 
+  add_row(species = "Merluccius senegalensis", r_val = "0.1881080") %>% 
+  add_row(species = "Lutjanus campechanus", r_val = "0.3476146") %>%
+  add_row(species = "Thunnus albacares", r_val = "0.4105157") %>% 
+  add_row(species = "Lethrinus harak", r_val = "0.4130523") %>% 
+  add_row(species = "Trachurus trachurus", r_val = "0.4249244") %>% 
+  add_row(species = "Coregonus albula", r_val = "0.6129337") %>% 
+  add_row(species = "Cephalopholis argus", r_val = "0.6469383") %>% 
+  add_row(species = "Cephalopholis miniata", r_val = "0.6469383") %>% 
+  add_row(species = "Ctenolabrus rupestris", r_val = "0.9394243") %>% 
+  add_row(species = "Lachnolaimus maximus", r_val = "0.6772400") %>% 
+  add_row(species = "Katsuwonus pelamis", r_val = "0.5804705") %>% 
+  add_row(species = "Cynoscion analis", r_val = "0.4616571") %>% 
+  add_row(species = "Trichiurus lepturus", r_val = "0.0468516") %>% 
+  add_row(species = "Engraulis ringens", r_val = "0.9040046") %>% 
+  add_row(species = "Larimus breviceps", r_val = "0.7037044") %>% 
+  add_row(species = "Mulloidichthys flavolineatus", r_val = "0.8339997") %>% 
+  add_row(species = "Nemipterus japonicus", r_val = "1.2949538") 
+  
+
+
+```
+
+

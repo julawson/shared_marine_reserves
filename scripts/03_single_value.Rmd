@@ -33,18 +33,33 @@ results_non <- tibble(
   NPV_b_hat = numeric()
 )
 
-# Initialize NPV variables
-NPV_a_hat <- 0
-NPV_b_hat <- 0
+# Initialize variables to store NPV for each x_a and x_b combination
+NPV_a_hat_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+NPV_b_hat_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+names(NPV_a_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
+names(NPV_b_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-# Storing initial values
-x_a_init <- x_a
-x_b_init <- x_b
+counter <- 1 # Counter to store NPV in the right position of NPV_a_hat_total and NPV_b_hat_total
+
+# Grid search over x_a_grid and x_b_grid
+for(i in seq_along(x_a_grid)) {
+  for(j in seq_along(x_b_grid)) {
     
-for(t in 1:timesteps) {
+    # Initial stock values for this run
+    x_a <- x_a_grid[i]
+    x_b <- x_b_grid[j]
+    
+    # Storing initial values
+    x_a_init <- x_a_grid[i]
+    x_b_init <- x_b_grid[j]
+    
+    NPV_a_hat <- 0
+    NPV_b_hat <- 0
+    
+    for(t in 1:timesteps) {
   
   # Calculate e_hat_a and e_hat_b
-  e_hat_values <- compute_e_hat(x_a, x_b, mu_a, M_aa, sigma_a, D_aa, k_a, r_a, mu_b, M_bb, sigma_b, D_bb, k_b, r_b, delta)
+  e_hat_values <- compute_e_hat(x_a = x_a_grid[i], x_b = x_b_grid[j], mu_a, M_aa, sigma_a, D_aa, k_a, r_a, mu_b, M_bb, sigma_b, D_bb, k_b, r_b, delta)
   
   # Calculate harvest based on e_hat
   h_a_val = h_a(x_a, e_hat_values$e_hat_a)
@@ -87,9 +102,18 @@ for(t in 1:timesteps) {
   x_b <- x_b_new
 }
 
+    # Store NPV for the current x_a and x_b combination
+    NPV_a_hat_total[counter] <- NPV_a_hat
+    NPV_b_hat_total[counter] <- NPV_b_hat
+    counter <- counter + 1
+    
+  }
+}
 
 # View results
-print(results_non)
+print(results_non) %>% 
+  group_by()
+
 
 df_results_non = results_non %>% filter(timestep==100) %>% select(-timestep)
 
@@ -228,8 +252,7 @@ for(t in T:1) {
   V = V_next
 }
 
-df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) %>% add_column(timestep=1) %>% 
-  filter(x_a == 11) %>% filter(x_b == 21)
+df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(timestep=1)
 
 ```
 
@@ -239,8 +262,7 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) %>% add_column(ti
 
 ```{r}
 
-# Sole Owner Scenario
-
+# Initialize data frame for storing results
 results_soa <- tibble(
   timestep = integer(), 
   x_a_init = numeric(),
@@ -250,36 +272,60 @@ results_soa <- tibble(
   x_b_init = numeric(),
   x_b = numeric(), 
   h_b = numeric(), 
-  e_b_star = numeric(),
+  #e_b_star = numeric(),
   NPV_ea_star = numeric(),
   NPV_eb_star = numeric()
 )
 
-# Initialize NPV variables
-NPV_ea_star <- 0
-NPV_eb_star <- 0
+# Initialize variables to store NPV for each x_a and x_b combination
+NPV_ea_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+NPV_eb_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+names(NPV_ea_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
+names(NPV_eb_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-# Storing initial values
-x_a_init <- df_inf$x_a
-x_b_init <- df_inf$x_b
+counter <- 1 # Counter to store NPV in the right position of NPV_a_star_total and NPV_b_star_total
 
-x_a <- df_inf$x_a
-x_b <- df_inf$x_b
+matrix_df = dcast(df_inf, x_a ~ x_b, value.var = "e_a_star")
+rownames(matrix_df) = x_a_grid 
+matrix_df = matrix_df[, -1]
 
-df_row <- df_inf 
-
-for(t in 1:timesteps) {
+# Grid search over x_a_grid and x_b_grid
+for(i in seq_along(x_a_grid)) {
+  for(j in seq_along(x_b_grid)) {
+    
+    # Initial stock values for this run
+    x_a <- x_a_grid[i]
+    x_b <- x_b_grid[j]
+    
+    # Storing initial values
+    x_a_init <- x_a_grid[i]
+    x_b_init <- x_b_grid[j]
+    
+    # Extract e_a_star from df_inf
+    e_a_star <- matrix_df[i, j]
+       
+    NPV_ea_star <- 0
+    NPV_eb_star <- 0
+    
+    for(t in 1:timesteps) {
   
-  e_a_star <- df_row$e_a_star
-  e_b_star <- df_row$x_b
+  # Calculate harvest based on e_star
   h_a_val = h_a(x_a, e_a_star)
-  h_b_val = h_b(x_b, 0)
-  x_a_new = next_x_a(e_a_star, e_b_star) - mu_a*M_aa*e_a_star - mu_b*M_ba*e_b_star + mu_a*M_aa*e_a_star + mu_b*M_ba*e_b_star
-  x_b_new = next_x_b(e_a_star, e_b_star) - mu_b*M_bb*e_b_star - mu_a*M_ab*e_a_star + mu_b*M_bb*e_b_star + mu_a*M_ab*e_a_star 
+  h_b_val = h_b(x_b, x_b)
+  
+  # Update stocks in each patch
+  x_a_new = next_x_a(e_a_star, x_b) - mu_a*M_aa*e_a_star - mu_b*M_ba*x_b + mu_a*M_aa*e_a_star + mu_b*M_ba*x_b
+  x_b_new = next_x_b(e_a_star, x_b) - mu_b*M_bb*x_b - mu_a*M_ab*e_a_star + mu_b*M_bb*x_b + mu_a*M_ab*e_a_star
+  
+  # Value
   V_a_star = b_a(p_a, c_a) * (x_a - e_a_star) * delta^(t-1)
-  V_b_star = b_b(p_b, c_b) * (x_b - e_b_star) * delta^(t-1)
+  V_b_star = b_b(p_b, c_b) * (x_b) * delta^(t-1)
+  
+  # Update NPV
   NPV_ea_star <- NPV_ea_star + V_a_star
   NPV_eb_star <- NPV_eb_star + V_b_star
+  
+  # Save results
   results_soa <- results_soa %>%
     add_row(
       timestep = t,
@@ -290,17 +336,31 @@ for(t in 1:timesteps) {
       x_b = x_b,
       h_b = h_b_val,
       e_a_star = e_a_star,
-      e_b_star = e_b_star,
+      #e_b_star = e_b_star,
       NPV_ea_star = NPV_ea_star,
       NPV_eb_star = NPV_eb_star
     )
+    
+  # Update the stock for next iteration
   x_a <- x_a_new
   x_b <- x_b_new
+  
+    }
+    
+# Store NPV for the current x_a and x_b combination
+    NPV_ea_star_total[counter] <- NPV_ea_star
+    NPV_eb_star_total[counter] <- NPV_eb_star
+    counter <- counter + 1
+  }
 }
 
+# View results
 print(results_soa)
 
-df_results_soa = results_soa %>% filter(timestep == 100) %>% select(-timestep)
+df_results_soa = results_soa %>% filter(timestep==100) %>% select(-timestep) 
+
+results_soa_fil <- results_soa %>% 
+  filter(x_a_init == 0.1 & x_b_init == 0.1)
 
 ```
 
@@ -309,16 +369,21 @@ df_results_soa = results_soa %>% filter(timestep == 100) %>% select(-timestep)
 ```{r}
 
 # Changing the name of x_a_init and x_b_init to just x_a and x_b for simplicity. 
-df_results_non_bind = df_results_non %>% select(-x_a, -x_b, -h_a, -h_b) %>%  rename (x_a = x_a_init) %>% rename (x_b = x_b_init)
-df_results_so_bind = df_results_so %>% select(-x_a, -x_b, -h_a, -h_b) %>% rename (x_a = x_a_init) %>% rename (x_b = x_b_init)
-df_results_ea_bind = df_results_soa %>% select(-x_a, -x_b, -h_a, -h_b, -NPV_eb_star) %>% rename (x_a = x_a_init) %>% rename (x_b = x_b_init)
+df_results_non_bind = df_results_non %>% select(-h_a, -h_b) %>% rename (x_a_non = x_a) %>% rename (x_b_non = x_b)
+df_results_so_bind = df_results_so %>% select(-h_a, -h_b) %>% rename (x_a_so = x_a) %>% rename (x_b_so = x_b)
+df_results_ea_bind = df_results_soa %>% select(-h_a, -h_b) %>% rename (x_a_soa = x_a) %>% rename (x_b_soa = x_b)
 
 # Merging e_a_star values from df_inf into results based on x_a and x_b
-results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a", "x_b")) %>% 
-  left_join(df_results_ea_bind, by= c("x_a", "x_b")) %>% 
+results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a_init", "x_b_init")) %>% 
+  left_join(df_results_ea_bind, by= c("x_a_init", "x_b_init")) %>% 
   mutate(WTP_A = NPV_ea_star-NPV_a_hat,
          WTA_B = NPV_b_hat) %>% 
   mutate(accept = WTP_A-WTA_B) %>% 
-  mutate(reserve_change = (NPV_a_star + NPV_b_star) - NPV_ea_star)
+  mutate(reserve_npv_coop = (NPV_ea_star) - (NPV_a_star + NPV_b_star)) %>% 
+  mutate(reserve_npv_non = (NPV_ea_star) -(NPV_a_hat + NPV_b_hat)) %>% 
+  mutate(reserve_vs_non_x = (x_a_soa + x_b_soa) - (x_a_non + x_b_non)) %>% 
+  mutate(reserve_vs_coop_x = (x_a_so + x_a_so) - (x_a_non + x_b_non)) 
 
 ```
+
+

@@ -15,10 +15,16 @@ e_b = function(x_b, h_b) {
 # Harvest Function, can't be negative.
 h_a = function(x_a, e_a) {
   return(x_a - e_a)
+  #h_a = x_a - e_a
+  #if (h_a < 0) {
+  #  h_a = 0
+  #}
+  #return(h_a)
 }
 
 h_b = function(x_b, e_b) {
   return(x_b - e_b)
+  #return(max(0, result))
 }
 
 
@@ -79,7 +85,7 @@ compute_e_star <- function(x_a, x_b, p_a, c_a, mu_a, M_aa, sigma_a, D_aa, k_a, r
   phi_b <- (b_b(p_b, c_b) / delta - b_b(p_b, c_b) * mu_b * M_bb - b_a(p_a, c_a) * mu_b * M_ba) / 
            (b_b(p_b, c_b) * sigma_b * D_bb + b_a(p_a, c_a) * sigma_a * D_ba)
   
-  e_star_a <- min(max((k_a * (r_a - phi_a)) / (2 * r_a), 0), x_a)
+  e_star_a <- min(max((k_a * (r_a - phi_a)) / (2 * r_a), 0), x_a) #Escapement must be greater than zero and can't be greater than carrying capacity
   e_star_b <- min(max((k_b * (r_b - phi_b)) / (2 * r_b), 0), x_b)
   
   return(list(e_star_a = e_star_a, e_star_b = e_star_b))
