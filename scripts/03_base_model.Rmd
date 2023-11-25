@@ -19,27 +19,18 @@ library(akima)
 
 # Initialize data frame for storing results
 
-results_non <- tibble(
-  timestep = integer(), 
-  x_a_init = numeric(),
-  x_a = numeric(), 
-  h_a = numeric(), 
-  e_hat_a = numeric(), 
-  x_b_init = numeric(),
-  x_b = numeric(), 
-  h_b = numeric(), 
-  e_hat_b = numeric(),
-  NPV_a_hat = numeric(),
-  NPV_b_hat = numeric()
-)
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps
+num_cols <- 9
+results_matrix_non <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
+colnames(results_matrix_non) <- c("timestep", "x_a_init", "x_a", "e_hat_a", "x_b_init", "x_b", "e_hat_b", "NPV_a_hat", "NPV_b_hat")
+
+row_counter <- 1
 
 # Initialize variables to store NPV for each x_a and x_b combination
 NPV_a_hat_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 NPV_b_hat_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_a_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_b_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
-
-counter <- 1 # Counter to store NPV in the right position of NPV_a_hat_total and NPV_b_hat_total
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -82,20 +73,8 @@ for(i in seq_along(x_a_grid)) {
   NPV_b_hat <- NPV_b_hat + V_b_hat
   
   # Save results including e_hat_a and e_hat_b
-  results_non <- results_non %>%
-    add_row(
-      timestep = t,
-      x_a_init = x_a_init,
-      x_a = x_a,
-      h_a = h_a_val,
-      x_b_init = x_b_init,
-      x_b = x_b,
-      h_b = h_b_val,
-      e_hat_a = e_hat_values$e_hat_a,
-      e_hat_b = e_hat_values$e_hat_b,
-      NPV_a_hat = NPV_a_hat,
-      NPV_b_hat = NPV_b_hat
-    )
+  results_matrix_non[row_counter, ] <- c(t, x_a_init, x_a, e_hat_values$e_hat_a, x_b_init, x_b, e_hat_values$e_hat_b, NPV_a_hat, NPV_b_hat)
+  row_counter <- row_counter + 1
     
   # Update the stock for next iteration
   x_a <- x_a_new
@@ -103,18 +82,14 @@ for(i in seq_along(x_a_grid)) {
 }
 
     # Store NPV for the current x_a and x_b combination
-    NPV_a_hat_total[counter] <- NPV_a_hat
-    NPV_b_hat_total[counter] <- NPV_b_hat
-    counter <- counter + 1
+    index <- (i - 1) * length(x_b_grid) + j
+    NPV_a_hat_total[index] <- NPV_a_hat
+    NPV_b_hat_total[index] <- NPV_b_hat
     
   }
 }
 
-# View results
-print(results_non)
-
-
-df_results_non = results_non %>% filter(timestep==100) %>% select(-timestep)
+df_results_non = as.data.frame(results_matrix_non) %>% filter(timestep==100) %>% select(-timestep)
 
 ```
 
@@ -124,27 +99,18 @@ df_results_non = results_non %>% filter(timestep==100) %>% select(-timestep)
 
 # Initialize data frame for storing results
 
-results_so <- tibble(
-  timestep = integer(), 
-  x_a_init = numeric(),
-  x_a = numeric(), 
-  h_a = numeric(), 
-  e_star_a = numeric(), 
-  x_b_init = numeric(),
-  x_b = numeric(), 
-  h_b = numeric(), 
-  e_star_b = numeric(),
-  NPV_a_star = numeric(),
-  NPV_b_star = numeric()
-)
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps
+num_cols <- 9
+results_matrix_so <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
+colnames(results_matrix_so) <- c("timestep", "x_a_init", "x_a", "e_star_a", "x_b_init", "x_b", "e_star_b", "NPV_a_star", "NPV_b_star")
+
+row_counter <- 1
 
 # Initialize variables to store NPV for each x_a and x_b combination
 NPV_a_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 NPV_b_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_a_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_b_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
-
-counter <- 1 # Counter to store NPV in the right position of NPV_a_star_total and NPV_b_star_total
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -186,39 +152,27 @@ for(i in seq_along(x_a_grid)) {
   NPV_a_star <- NPV_a_star + V_a_star
   NPV_b_star <- NPV_b_star + V_b_star
   
-  # Save results including e_star_a and e_star_b
-  results_so <- results_so %>%
-    add_row(
-      timestep = t,
-      x_a_init = x_a_init,
-      x_a = x_a,
-      h_a = h_a_val,
-      x_b_init = x_b_init,
-      x_b = x_b,
-      h_b = h_b_val,
-      e_star_a = e_star_values$e_star_a,
-      e_star_b = e_star_values$e_star_b,
-      NPV_a_star = NPV_a_star,
-      NPV_b_star = NPV_b_star
-    )
-    
+  # Save results including e_hat_a and e_hat_b
+  results_matrix_so[row_counter, ] <- c(t, x_a_init, x_a, e_star_values$e_star_a, x_b_init, x_b, e_star_values$e_star_b, NPV_a_star, NPV_b_star)
+  row_counter <- row_counter + 1
+  
   # Update the stock for next iteration
   x_a <- x_a_new
   x_b <- x_b_new
   
     }
     
-# Store NPV for the current x_a and x_b combination
-    NPV_a_star_total[counter] <- NPV_a_star
-    NPV_b_star_total[counter] <- NPV_b_star
-    counter <- counter + 1
+    # Store NPV for the current x_a and x_b combination
+    index <- (i - 1) * length(x_b_grid) + j
+    NPV_a_star_total[index] <- NPV_a_star
+    NPV_b_star_total[index] <- NPV_b_star
+    
   }
 }
 
 # View results
-print(results_so)
 
-df_results_so = results_so %>% filter(timestep==100) %>% select(-timestep)
+df_results_so = as.data.frame(results_matrix_so)  %>% filter(timestep==100) %>% select(-timestep)
 
 ```
 
@@ -261,28 +215,18 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(
 
 ```{r}
 
-# Initialize data frame for storing results
-results_soa <- tibble(
-  timestep = integer(), 
-  x_a_init = numeric(),
-  x_a = numeric(), 
-  h_a = numeric(), 
-  e_a_star = numeric(), 
-  x_b_init = numeric(),
-  x_b = numeric(), 
-  h_b = numeric(), 
-  #e_b_star = numeric(),
-  NPV_ea_star = numeric(),
-  NPV_eb_star = numeric()
-)
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps 
+num_cols <- 8  # Number of variables you are storing
+results_matrix_soa <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
+colnames(results_matrix_soa) <- c("timestep", "x_a_init", "x_a", "e_a_star", "x_b_init", "x_b", "NPV_ea_star", "NPV_eb_star")
 
-# Initialize variables to store NPV for each x_a and x_b combination
+row_counter <- 1
+
+# Initialize NPV variables and counter
 NPV_ea_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 NPV_eb_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_ea_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_eb_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
-
-counter <- 1 # Counter to store NPV in the right position of NPV_a_star_total and NPV_b_star_total
 
 matrix_df = dcast(df_inf, x_a ~ x_b, value.var = "e_a_star")
 rownames(matrix_df) = x_a_grid 
@@ -325,21 +269,9 @@ for(i in seq_along(x_a_grid)) {
   NPV_eb_star <- NPV_eb_star + V_b_star
   
   # Save results
-  results_soa <- results_soa %>%
-    add_row(
-      timestep = t,
-      x_a_init = x_a_init,
-      x_a = x_a,
-      h_a = h_a_val,
-      x_b_init = x_b_init,
-      x_b = x_b,
-      h_b = h_b_val,
-      e_a_star = e_a_star,
-      #e_b_star = e_b_star,
-      NPV_ea_star = NPV_ea_star,
-      NPV_eb_star = NPV_eb_star
-    )
-    
+  results_matrix_soa[row_counter, ] <- c(t, x_a_init, x_a, e_a_star, x_b_init, x_b, NPV_ea_star, NPV_eb_star)
+  row_counter <- row_counter + 1
+  
   # Update the stock for next iteration
   x_a <- x_a_new
   x_b <- x_b_new
@@ -347,19 +279,15 @@ for(i in seq_along(x_a_grid)) {
     }
     
 # Store NPV for the current x_a and x_b combination
-    NPV_ea_star_total[counter] <- NPV_ea_star
-    NPV_eb_star_total[counter] <- NPV_eb_star
-    counter <- counter + 1
+    index <- (i - 1) * length(x_b_grid) + j
+    NPV_ea_star_total[index] <- NPV_ea_star
+    NPV_eb_star_total[index] <- NPV_eb_star
   }
 }
 
-# View results
-print(results_soa)
 
-df_results_soa = results_soa %>% filter(timestep==100) %>% select(-timestep) 
+df_results_soa = as.data.frame(results_matrix_soa) %>% filter(timestep==100) %>% select(-timestep) 
 
-results_soa_fil <- results_soa %>% 
-  filter(x_a_init == 0.1 & x_b_init == 0.1)
 
 ```
 
@@ -368,9 +296,9 @@ results_soa_fil <- results_soa %>%
 ```{r}
 
 # Changing the name of x_a_init and x_b_init to just x_a and x_b for simplicity. 
-df_results_non_bind = df_results_non %>% select(-h_a, -h_b) %>% rename (x_a_non = x_a) %>% rename (x_b_non = x_b)
-df_results_so_bind = df_results_so %>% select(-h_a, -h_b) %>% rename (x_a_so = x_a) %>% rename (x_b_so = x_b)
-df_results_ea_bind = df_results_soa %>% select(-h_a, -h_b) %>% rename (x_a_soa = x_a) %>% rename (x_b_soa = x_b)
+df_results_non_bind = df_results_non %>% rename (x_a_non = x_a) %>% rename (x_b_non = x_b)
+df_results_so_bind = df_results_so  %>% rename (x_a_so = x_a) %>% rename (x_b_so = x_b)
+df_results_ea_bind = df_results_soa %>% rename (x_a_soa = x_a) %>% rename (x_b_soa = x_b)
 
 # Merging e_a_star values from df_inf into results based on x_a and x_b
 results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a_init", "x_b_init")) %>% 
