@@ -5,26 +5,28 @@
 
 # Escapement Function
 e_a = function(x_a, h_a) {
-  return(x_a - h_a)
+  e_a = x_a - h_a
+  e_a = ifelse(e_a < 0, 0, e_a)
+  return(e_a)
 }
 
 e_b = function(x_b, h_b) {
-  return(x_b - h_b)
+  e_b = x_b - h_b
+  e_b = ifelse(e_b < 0, 0, e_b)
+  return(e_b)
 }
 
 # Harvest Function, can't be negative.
 h_a = function(x_a, e_a) {
-  return(x_a - e_a)
-  #h_a = x_a - e_a
-  #if (h_a < 0) {
-  #  h_a = 0
-  #}
-  #return(h_a)
+  h_a = x_a - e_a
+  h_a = ifelse(h_a < 0, 0, h_a)
+  return(h_a)
 }
 
 h_b = function(x_b, e_b) {
-  return(x_b - e_b)
-  #return(max(0, result))
+  h_b = x_b - e_b
+  h_b = ifelse(h_b < 0, 0, h_b)
+  return(h_b)
 }
 
 

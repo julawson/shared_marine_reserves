@@ -13,12 +13,53 @@ library(akima)
 #devtools::install_github("james-thorson/FishLife")
 library(FishLife)
 library(kableExtra)
+library(rfishbase)
 ```
 
 ```{r}
 
-lh_table = read.csv(here("data","filled_data2.csv")) 
+lh_table = read.csv(here("data","filled_data2.csv")) %>% select(-iucn_category)
 
+# Define the conversion function
+convert_scale <- function(x) {
+  new_value <- (x - 1) / 5
+  return(new_value)
+}
+
+# Apply the conversion function to the dataframe
+lh_table$month_pld_con_val <- sapply(lh_table$month_pld, convert_scale)
+
+convert_scale2 <- function(x) {
+  new_value2 <- (x + 6) / 11
+  return(new_value2)
+}
+
+# Apply the conversion function to the dataframe
+lh_table$mag_hr_con_val <- sapply(lh_table$magnitude_homerange, convert_scale2) 
+lh_table$mag_hr_con_val <- round(lh_table$mag_hr_con_val, digits = 1)
+
+# Adding Aspect Ratio to Allie's Database
+
+lh_table_sp = lh_table %>% select(species)
+specieslist <- lh_table_sp[['species']]
+fbswim <- swimming(species_list = specieslist) %>% drop_na(AspectRatio) %>% 
+  select(Species, AspectRatio) %>% 
+  rename(species=Species) %>% 
+  drop_na(AspectRatio)
+
+lh_table_filter <- lh_table %>% 
+  select(species, fb_name, r_fin, movement_keyword, demers_pelag, home_range, pld, class2, ocean, basin, month_pld_con_val, mag_hr_con_val) %>% 
+  #left_join(fbswim, by = c("species")) %>% 
+  #drop_na(AspectRatio) %>% 
+  #filter(demers_pelag == "demersal") %>% 
+  filter(home_range <= 1) %>% 
+  #filter(AspectRatio <= 1) %>% 
+  filter(pld >= 60)
+
+
+```
+
+```{r}
 unique(lh_table$class2)
 
 # "1: mid/low" (mid home range / low larval duration)
@@ -72,11 +113,11 @@ candidate_sp = bind_rows(lh_table_filter, lh_table_filter2, lh_table_filter3, lh
 ```{r}
 # Using FishLife Database to Predict r
 
-Predict = Plot_taxa(Search_species(Genus="Lampris",Species="guttatus")$match_taxonomy, mfrow=c(2,2))
-knitr::kable(Predict[[1]]$Mean_pred, digits=3)
-Predict[[1]]$Mean_pred %>%
-  kbl() %>%
-  kable_styling()
+#Predict = Plot_taxa(Search_species(Genus="Lampris",Species="guttatus")$match_taxonomy, mfrow=c(2,2))
+#knitr::kable(Predict[[1]]$Mean_pred, digits=3)
+#Predict[[1]]$Mean_pred %>%
+#  kbl() %>%
+#  kable_styling()
 
 fishlife_pred <- data.frame(species = "Sebastes chlorostictus",r_val = "0.1136579") %>% 
   add_row(species = "Sebastes rufus", r_val = "0.1136579") %>% 
@@ -100,9 +141,15 @@ fishlife_pred <- data.frame(species = "Sebastes chlorostictus",r_val = "0.113657
   add_row(species = "Larimus breviceps", r_val = "0.7037044") %>% 
   add_row(species = "Mulloidichthys flavolineatus", r_val = "0.8339997") %>% 
   add_row(species = "Nemipterus japonicus", r_val = "1.2949538") 
-  
+
+```
+
+
+```{r}
+
 
 
 ```
+
 
 
