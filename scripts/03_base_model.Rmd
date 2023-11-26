@@ -180,6 +180,12 @@ df_results_so = as.data.frame(results_matrix_so)  %>% filter(timestep==100) %>% 
 
 ```{r}
 
+size_x_a = 10 #size of the state grid A
+size_x_b = 10 #size of B
+
+x_a_grid = seq(small, k_a, length.out=10)
+x_b_grid = seq(small, k_b, length.out=10)
+
 # Find Patch A Sole Owner Scenario (e_a*)
 
 df_all = data.frame()
@@ -195,7 +201,7 @@ for(t in T:1) {
       low = 0 #lower bound on escapement in A
       high = x_a #upper bound on escapement in A
       Thing = optim(par=guess, fn=payoff, lower=low, upper=high, x_a=x_a, x_b=x_b, V=V, method='L-BFGS-B')
-      e_a_star = Thing$par
+      e_a_star = max(Thing$par, 0)
       V_star = -Thing$value
       V_next[i,j] = V_star
       df_now = data.frame(time=t, x_a=x_a, x_b=x_b, e_a_star=e_a_star, V_star=V_star)
@@ -209,11 +215,58 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(
 
 ```
 
+
+```{r}
+
+
+size_x_a = 100 #size of the state grid A
+size_x_b = 100 #size of B
+
+x_a_grid = seq(small, k_a, length.out=size_x_a)
+x_b_grid = seq(small, k_b, length.out=size_x_b)
+
+df_int = df_inf |> mutate(xab = x_a * x_b) 
+
+interp_model <- mgcv::gam(e_a_star ~ s(x_a) + s(x_b) + s(xab), data = df_int)
+
+interp_frame <-
+
+    data.frame(x_a = x_a, x_b = x_b, xab = x_a * x_b)
+
+e_a_star <- pmax(min(df_int$e_a_star),predict(interp_model, newdata = interp_frame))
+
+# 1. Create a new dataframe for the grid values
+grid_df <- expand.grid(x_a = seq(small, k_a,length.out=size_x_a), x_b = seq(small, k_b,length.out=size_x_b))
+
+# 2. Calculate the interaction term xab for the grid
+grid_df$xab <- grid_df$x_a * grid_df$x_b
+
+# 3. Predict e_a_star for the entire grid
+predicted_e_a_star <- predict(interp_model, newdata = grid_df)
+
+# 4. Merge the interpolated e_a_star values with df_results_so_ea based on x_a and x_b
+df_e_a_star_interpolated <- merge(grid_df, df_int, by.x = c("x_a", "x_b"), by.y = c("x_a", "x_b"), all.x = TRUE)
+
+# Replace the NAs in df_results_so_ea_interpolated with the interpolated values
+df_e_a_star_interpolated$e_a_star <- ifelse(is.na(df_e_a_star_interpolated$e_a_star), predicted_e_a_star, df_e_a_star_interpolated$e_a_star)
+
+df_e_a_star_int <- df_e_a_star_interpolated %>% select(x_a, x_b, e_a_star)
+
+print(df_e_a_star_int)
+
+```
+
 #II. Sole Owner Patch A (Reserve Scenario)
 
 # Single Value
 
 ```{r}
+
+size_x_a = 100 #size of the state grid A
+size_x_b = 100 #size of B
+
+x_a_grid = seq(small, k_a, length.out=size_x_a)
+x_b_grid = seq(small, k_b, length.out=size_x_b)
 
 num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps 
 num_cols <- 8  # Number of variables you are storing
@@ -228,8 +281,8 @@ NPV_eb_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_ea_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_eb_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-matrix_df = dcast(df_inf, x_a ~ x_b, value.var = "e_a_star")
-rownames(matrix_df) = x_a_grid 
+matrix_df = dcast(df_e_a_star_interpolated, x_a ~ x_b, value.var = "e_a_star")
+rownames(matrix_df) = x_a_grid
 matrix_df = matrix_df[, -1]
 
 # Grid search over x_a_grid and x_b_grid
@@ -310,6 +363,54 @@ results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a_init
   mutate(reserve_npv_non = (NPV_ea_star) - (NPV_a_hat + NPV_b_hat)) %>% #something wrong with this
   mutate(reserve_vs_non_x = (x_a_soa + x_b_soa) - (x_a_non + x_b_non)) %>% 
   mutate(reserve_vs_coop_x = (x_a_so + x_a_so) - (x_a_non + x_b_non)) 
+
+results_nar <-  results %>% 
+  filter(accept > -0.05 & accept < 0.05)
+
+```
+
+# Predict accept = 0
+
+```{r}
+
+#results_int = results %>% rename(x_a = x_a_init) %>% rename(x_b = x_b_init) |> mutate(xab = x_a * x_b) 
+
+#results = results %>% rename(x_a = x_a_init) %>% rename(x_b = x_b_init)
+
+#interp_model <- mgcv::gam(accept ~ s(x_a) + s(x_b) + s(xab), data = results_int)
+
+#interp_frame <-
+
+#    data.frame(x_a = x_a, x_b = x_b, xab = x_a * x_b)
+
+#accept <- pmax(min(results$accept),predict(interp_model, newdata = interp_frame))
+
+# 1. Create a new dataframe for the grid values
+#grid_df <- expand.grid(x_a = seq(0,100, by=0.1), x_b = seq(0,100, by=0.1))
+
+# 2. Calculate the interaction term xab for the grid
+#grid_df$xab <- grid_df$x_a * grid_df$x_b
+
+# 3. Predict e_a_star for the entire grid
+#predicted_accept <- predict(interp_model, newdata = grid_df)
+
+# 4. Merge the interpolated e_a_star values with df_results_so_ea based on x_a and x_b
+#df_results_interpolated <- merge(grid_df, results, by.x = c("x_a", "x_b"), by.y = c("x_a", "x_b"), all.x = TRUE)
+
+# Replace the NAs in df_results_so_ea_interpolated with the interpolated values
+#df_results_interpolated$accept <- ifelse(is.na(df_results_interpolated$accept), predicted_accept, df_results_interpolated$accept)
+
+#df_results_int <- df_results_interpolated %>% select(x_a, x_b, accept) %>% 
+#  filter(accept > -0.005 & accept < 0.005)
+
+#print(df_results_int)
+
+```
+
+```{r}
+
+ggplot() +
+  geom_point(data = results, aes(x = x_b_init, y = accept))
 
 ```
 

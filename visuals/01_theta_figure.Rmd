@@ -24,19 +24,20 @@ M_ab_sens = read.csv(here("data","outputs","theta_Mab.csv"))
 # Comparing non-cooperative stock sizes (x_a_non + x_b_non) to Patch A as sole owner stock size.
 
 theta_Mab <- M_ab_sens %>% 
-  select(M_ab, x_a_non, x_b_non, x_a_soa, WTP_A, WTA_B, accept)
+  select(M_ab, x_a_non, x_b_non, x_a_so, x_b_so, x_a_soa, WTP_A, WTA_B, accept)
 
 # Create a new dataframe with separate columns for x_a_non and x_b_non
 theta_Mab_stacked <- theta_Mab %>%
-  select(M_ab, x_a_non, x_b_non, x_a_soa) %>% 
+  select(M_ab, x_a_non, x_b_non, x_a_soa, x_a_so, x_b_so) %>% 
+  mutate(x_ab_so = x_a_so + x_b_so) %>% 
   mutate(x_ab_non = x_a_non + x_b_non) %>% 
-  pivot_longer(cols = c(x_ab_non, x_a_soa), names_to = "Category", values_to = "Value")
+  pivot_longer(cols = c(x_ab_non, x_ab_so, x_a_soa), names_to = "Category", values_to = "Value")
 
 # Create the stacked bar graph
 ggplot(data = theta_Mab_stacked, aes(x = M_ab, y = Value, fill = Category)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(x = "M_ab", y = "Value") +
-  scale_fill_manual(values = c("x_ab_non" = "blue", "x_a_soa" = "green")) +  # Customize fill colors
+  scale_fill_manual(values = c("x_ab_non" = "blue", "x_ab_so" = "red", "x_a_soa" = "green")) +  # Customize fill colors
   theme_minimal()
 
 ```
