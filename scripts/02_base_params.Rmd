@@ -36,14 +36,14 @@ c_b = 20
 delta = 0.95
 
 # Adaptive parameters
-size_x_a = 100 #size of the state grid A
-size_x_b = 100 #size of B
+size_x_a = 10 #size of the state grid A
+size_x_b = 10 #size of B
 
 T = 100 #time horizon for backward induction
 
 small = 0.1
 
 x_a_grid = seq(small, k_a,length.out=size_x_a)
-x_b_grid = seq(small, k_b, length.out=size_x_b)
+x_b_grid = seq(small,k_b, length.out=size_x_b)
 
 ```

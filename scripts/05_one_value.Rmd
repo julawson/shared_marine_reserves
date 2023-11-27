@@ -20,6 +20,7 @@ library(akima)
 x_a_init = 66
 x_b_init = 77
 
+e_a_star = 17.80803
 ```
 
 # Non-Cooperative Scenario
@@ -188,30 +189,30 @@ df_results_so = results_so %>% filter(timestep==100) %>% select(-timestep)
 
 ```{r}
 
-df_all = data.frame()
-V_next = matrix(0, size_x_a, size_x_b)
-V = matrix(0, size_x_a, size_x_b)
+#df_all = data.frame()
+#V_next = matrix(0, size_x_a, size_x_b)
+#V = matrix(0, size_x_a, size_x_b)
 
-for(t in T:1) {
-  for(i in 1:size_x_a) {
-    x_a = x_a_grid[i]
-    for(j in 1:size_x_b) {
-      x_b = x_b_grid[j]
-      guess = x_a/2
-      low = 0 #lower bound on escapement in A
-      high = x_a #upper bound on escapement in A
-      Thing = optim(par=guess, fn=payoff, lower=low, upper=high, x_a=x_a, x_b=x_b, V=V, method='L-BFGS-B')
-      e_a_star = Thing$par
-      V_star = -Thing$value
-      V_next[i,j] = V_star
-      df_now = data.frame(time=t, x_a=x_a, x_b=x_b, e_a_star=e_a_star, V_star=V_star)
-      df_all = rbind(df_all, df_now)
-    }
-  }
-  V = V_next
-}
+#for(t in T:1) {
+#  for(i in 1:size_x_a) {
+#    x_a = x_a_grid[i]
+#    for(j in 1:size_x_b) {
+#      x_b = x_b_grid[j]
+#      guess = x_a/2
+#      low = 0 #lower bound on escapement in A
+#      high = x_a #upper bound on escapement in A
+#      Thing = optim(par=guess, fn=payoff, lower=low, upper=high, x_a=x_a, x_b=x_b, V=V, method='L-BFGS-B')
+#      e_a_star = Thing$par
+#      V_star = -Thing$value
+#      V_next[i,j] = V_star
+#      df_now = data.frame(time=t, x_a=x_a, x_b=x_b, e_a_star=e_a_star, V_star=V_star)
+#      df_all = rbind(df_all, df_now)
+#    }
+#  }
+#  V = V_next
+#}
 
-df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) %>% add_column(timestep=1)
+#df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) %>% add_column(timestep=1)
 
 
 ```
@@ -241,7 +242,7 @@ NPV_eb_star <- 0
 # Storing initial values
  x_a <- x_a_init
  x_b <- x_b_init
- e_a_star <- df_inf$e_a_star
+ e_a_star <- e_a_star
     
     for(t in 1:timesteps) {
   

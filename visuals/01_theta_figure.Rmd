@@ -14,30 +14,126 @@ library(akima)
 
 ```{r}
 
-M_ab_sens = read.csv(here("data","outputs","theta_Mab.csv")) 
+M_ab_sens = read.csv(here("data","outputs","low_low","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
+M_ba_sens = read.csv(here("data","outputs","low_low","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
+D_ab_sens = read.csv(here("data","outputs","low_low","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
+D_ba_sens = read.csv(here("data","outputs","low_low","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
+
+low_m_low_d = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
+  filter(x_a_init >= 0 & x_a_init <= 0.1) %>% 
+  filter(x_b_init >= 22 & x_b_init <= 23) %>% 
+  mutate(reserve_npv_coop = -reserve_npv_coop)
 
 ```
 
 ```{r}
 
-# Conservation Value Plot
-# Comparing non-cooperative stock sizes (x_a_non + x_b_non) to Patch A as sole owner stock size.
 
-theta_Mab <- M_ab_sens %>% 
-  select(M_ab, x_a_non, x_b_non, x_a_so, x_b_so, x_a_soa, WTP_A, WTA_B, accept)
+pal <- c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00") #, "#EF5703", "#F21A00", "#A5C2A3", "#BDC881")
+
+ggplot(low_m_low_d, aes(x = value, y = accept, color = theta)) +
+  theme_minimal() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  geom_line(aes(x = value, y = reserve_npv_coop), linetype = "dotted", color = "black") + # Dotted line represents the 'value' of an agreement (reserve NPV relative to cooperative solution NPV)
+  geom_line(linewidth = 1.5) +
+  labs(x = "Theta Value", y = "Agreement Acceptance") +
+  scale_color_manual(
+    name = "Theta",
+    labels = c("Dispersal (A to B)", "Dispersal (B to A)", "Movement (A to B)", "Movement (B to A)"),
+    values = setNames(pal, unique(low_m_low_d$theta))
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 2) +
+  theme(strip.text.x = element_blank())
+  
+
+```
+
+# Conservation Value Plot (NPV)
+
+```{r}
+
+# Optimal Policy For Patch A
 
 # Create a new dataframe with separate columns for x_a_non and x_b_non
-theta_Mab_stacked <- theta_Mab %>%
-  select(M_ab, x_a_non, x_b_non, x_a_soa, x_a_so, x_b_so) %>% 
-  mutate(x_ab_so = x_a_so + x_b_so) %>% 
-  mutate(x_ab_non = x_a_non + x_b_non) %>% 
-  pivot_longer(cols = c(x_ab_non, x_ab_so, x_a_soa), names_to = "Category", values_to = "Value")
+theta_stacked <- low_m_low_d %>%  
+  select(theta, value, NPV_a_hat, NPV_b_hat, NPV_a_star, NPV_b_star, NPV_ea_star) %>% 
+  pivot_longer(cols = c(NPV_a_hat, NPV_a_star, NPV_ea_star), names_to = "Category", values_to = "Value_X")
 
 # Create the stacked bar graph
-ggplot(data = theta_Mab_stacked, aes(x = M_ab, y = Value, fill = Category)) +
+ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
   geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "M_ab", y = "Value") +
-  scale_fill_manual(values = c("x_ab_non" = "blue", "x_ab_so" = "red", "x_a_soa" = "green")) +  # Customize fill colors
-  theme_minimal()
+  labs(x = "Theta Value", y = "Net Present Value for Patch A") +
+  theme_minimal() +
+  scale_fill_manual(
+    name = "Policy Scenario",
+    labels = c("Non-Cooperative", "Cooperative", "Reserve (Patch A Sole Owner)"),
+    values = c("NPV_a_hat" = "#9B110E", "NPV_a_star" = "#5F5647", "NPV_ea_star" = "#FAD510")
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
+  "D_ab" = "Dispersal (A to B)",
+  "D_ba" = "Dispersal (B to A)",
+  "M_ab" = "Movement (A to B)",
+  "M_ba" = "Movement (B to A)"))) +
+  theme(strip.text = element_text(size = 8))
+
+# Optimal Policy For Patch B
+
+# Create a new dataframe with separate columns for x_a_non and x_b_non
+theta_stacked <- low_m_low_d %>%  
+  select(theta, value, NPV_a_hat, NPV_b_hat, NPV_a_star, NPV_b_star, NPV_ea_star, WTP_A) %>% 
+  pivot_longer(cols = c(NPV_b_hat, NPV_b_star, WTP_A), names_to = "Category", values_to = "Value_X")
+
+# Create the stacked bar graph
+ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Theta Value", y = "Net Present Value for Patch B") +
+  theme_minimal() +
+  scale_fill_manual(
+    name = "Policy Scenario",
+    labels = c("Non-Cooperative", "Cooperative", "Reserve (Patch A Willingness-to-Pay)"),
+    values = c("NPV_b_hat" = "#9B110E", "NPV_b_star" = "#5F5647", "WTP_A" = "#FAD510")
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
+  "D_ab" = "Dispersal (A to B)",
+  "D_ba" = "Dispersal (B to A)",
+  "M_ab" = "Movement (A to B)",
+  "M_ba" = "Movement (B to A)"))) +
+  theme(strip.text = element_text(size = 8))
+
+```
+
+
+# Comparing non-cooperative stock sizes (x_a_non + x_b_non) to Patch A as sole owner stock size.
+
+```{r}
+
+# Create a panel plot for each movement and dispersal parameter
+
+pal <- c("#EF5703", "#BDC881", "#A5C2A3")
+
+# Create a new dataframe with separate columns for x_a_non and x_b_non
+theta_stacked <- low_m_low_d %>%
+  mutate(x_ab_so = x_a_so + x_b_so) %>% 
+  mutate(x_ab_non = x_a_non + x_b_non) %>% 
+  mutate(x_ab_res = x_a_soa + x_b_soa) %>% 
+  select(theta, value, x_ab_non, x_ab_so, x_ab_res) %>% 
+  pivot_longer(cols = c(x_ab_non, x_ab_so, x_ab_res), names_to = "Category", values_to = "Value_X")
+
+# Create the stacked bar graph
+ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Theta Value", y = expression(Total~Equilibrium~Stock~Size~(X[a]~and~X[b]))) +
+  theme_minimal() +
+  scale_fill_manual(
+    name = "Policy Scenario",
+    labels = c("Non-Cooperative", "Reserve (Patch A Sole Owner)", "Cooperative"),
+    values = c("x_ab_non" = "#BDC881", "x_ab_so" = "#A5C2A3", "x_ab_res" = "#EF5703")
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
+  "D_ab" = "Dispersal (A to B)",
+  "D_ba" = "Dispersal (B to A)",
+  "M_ab" = "Movement (A to B)",
+  "M_ba" = "Movement (B to A)"))) +
+  theme(strip.text = element_text(size = 8))
 
 ```
