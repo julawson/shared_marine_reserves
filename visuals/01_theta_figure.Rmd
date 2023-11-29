@@ -14,14 +14,14 @@ library(akima)
 
 ```{r}
 
-M_ab_sens = read.csv(here("data","outputs","low_high","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
-M_ba_sens = read.csv(here("data","outputs","low_high","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
-D_ab_sens = read.csv(here("data","outputs","low_high","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
-D_ba_sens = read.csv(here("data","outputs","low_high","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
+M_ab_sens = read.csv(here("data","outputs","low_low","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
+M_ba_sens = read.csv(here("data","outputs","low_low","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
+D_ab_sens = read.csv(here("data","outputs","low_low","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
+D_ba_sens = read.csv(here("data","outputs","low_low","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
 
 low_m_low_d = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
-  filter(x_a_init >= 33 & x_a_init <= 34) %>% 
-  filter(x_b_init >= 88 & x_b_init <= 89) %>% 
+  filter(x_a_init >= 0.1 & x_a_init <= 0.1) %>% 
+  filter(x_b_init >= 33 & x_b_init <= 34) %>% 
   mutate(reserve_npv_coop = -reserve_npv_coop)
 
 ```
