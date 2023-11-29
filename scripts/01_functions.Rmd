@@ -6,13 +6,13 @@
 # Escapement Function
 e_a = function(x_a, h_a) {
   e_a = x_a - h_a
-  e_a = ifelse(e_a < 0, 0, e_a)
+  e_a = ifelse(e_a < 0, 0, ifelse(e_a > x_a, x_a, e_a))
   return(e_a)
 }
 
 e_b = function(x_b, h_b) {
   e_b = x_b - h_b
-  e_b = ifelse(e_b < 0, 0, e_b)
+  e_b = ifelse(e_b < 0, 0, ifelse(e_b > x_b, x_b, e_b))
   return(e_b)
 }
 
@@ -35,12 +35,18 @@ h_b = function(x_b, e_b) {
 growth_a = function(e_a)
 {
   y_a = r_a*e_a*(1-e_a/k_a)
+  if (y_a < 0) {
+    y_a = 0
+  }
   return(y_a)
 }
 
 growth_b = function(e_b)
 {
   y_b = r_b*e_b*(1-e_b/k_b)
+  if (y_b < 0) {
+    y_b = 0
+  }
   return(y_b)
 }
 
@@ -49,14 +55,14 @@ growth_b = function(e_b)
 next_x_a = function(e_a,e_b)
 {
   x_a_new = mu_a*M_aa*e_a + mu_b*M_ba*e_b + sigma_a*(D_aa*growth_a(e_a) + D_ba*growth_b(e_b))
-  #x_a_new = min(x_a_new, k_a)
+  x_a_new = min(x_a_new, k_a)
   return(x_a_new)
 }
 
 next_x_b = function(e_a,e_b)
 {
   x_b_new = mu_b*M_bb*e_b + mu_a*M_ab*e_a + sigma_b*(D_bb*growth_b(e_b) + D_ab*growth_a(e_a))
-  #x_b_new = min(x_b_new, k_b)
+  x_b_new = min(x_b_new, k_b)
   return(x_b_new)
 }
 
@@ -71,11 +77,8 @@ b_b = function(p_b, c_b) {
 }
 
 
-```
 
 # III. Scenario Functions
-
-```{r}
 
 # Sole Owner Scenario
 

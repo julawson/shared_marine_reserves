@@ -23,7 +23,7 @@ library(akima)
 num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
 num_cols <- 10  
 results_matrix_non <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_non) <- c("D_ba", "timestep", "x_a_init", "x_a", "e_hat_a", "x_b_init", "x_b", "e_hat_b", "NPV_a_hat", "NPV_b_hat")
+colnames(results_matrix_non) <- c("M_ba", "timestep", "x_a_init", "x_a", "e_hat_a", "x_b_init", "x_b", "e_hat_b", "NPV_a_hat", "NPV_b_hat")
 
 row_counter <- 1
 
@@ -34,10 +34,10 @@ names(NPV_a_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b
 names(NPV_b_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
 
-for(D_ba in seq(0, 1, by = 0.1)) {
+for(M_ba in seq(0, 1, by = 0.1)) {
       
         # Recalculate dependent variables
-        D_bb = 1 - D_ba
+        M_bb = 1 - M_ba
   
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -80,7 +80,7 @@ for(i in seq_along(x_a_grid)) {
   NPV_b_hat <- NPV_b_hat + V_b_hat
   
   # Save results including e_hat_a and e_hat_b
-  results_matrix_non[row_counter, ] <- c(D_ba, t, x_a_init, x_a, e_hat_values$e_hat_a, x_b_init, x_b, e_hat_values$e_hat_b, NPV_a_hat, NPV_b_hat)
+  results_matrix_non[row_counter, ] <- c(M_ba, t, x_a_init, x_a, e_hat_values$e_hat_a, x_b_init, x_b, e_hat_values$e_hat_b, NPV_a_hat, NPV_b_hat)
   row_counter <- row_counter + 1
     
   # Update the stock for next iteration
@@ -110,7 +110,7 @@ df_results_non = as.data.frame(results_matrix_non) %>% filter(timestep==100) %>%
 num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
 num_cols <- 10  
 results_matrix_so <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_so) <- c("D_ba", "timestep", "x_a_init", "x_a", "e_star_a", "x_b_init", "x_b", "e_star_b", "NPV_a_star", "NPV_b_star")
+colnames(results_matrix_so) <- c("M_ba", "timestep", "x_a_init", "x_a", "e_star_a", "x_b_init", "x_b", "e_star_b", "NPV_a_star", "NPV_b_star")
 
 row_counter <- 1
 
@@ -120,10 +120,10 @@ NPV_b_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_a_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_b_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-for(D_ba in seq(0, 1, by = 0.1)) {
+for(M_ba in seq(0, 1, by = 0.1)) {
       
         # Recalculate dependent variables
-        D_bb = 1 - D_ba
+        M_bb = 1 - M_ba
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -166,7 +166,7 @@ for(i in seq_along(x_a_grid)) {
   NPV_b_star <- NPV_b_star + V_b_star
   
   # Save results including e_hat_a and e_hat_b
-  results_matrix_so[row_counter, ] <- c(D_ba, t, x_a_init, x_a, e_star_values$e_star_a, x_b_init, x_b, e_star_values$e_star_b, NPV_a_star, NPV_b_star)
+  results_matrix_so[row_counter, ] <- c(M_ba, t, x_a_init, x_a, e_star_values$e_star_a, x_b_init, x_b, e_star_values$e_star_b, NPV_a_star, NPV_b_star)
   row_counter <- row_counter + 1
     
   # Update the stock for next iteration
@@ -266,7 +266,7 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star)
 num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
 num_cols <- 9  # Number of variables you are storing
 results_matrix_soa <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_soa) <- c("D_ba", "timestep", "x_a_init", "x_a", "e_a_star", "x_b_init", "x_b", "NPV_ea_star", "NPV_eb_star")
+colnames(results_matrix_soa) <- c("M_ba", "timestep", "x_a_init", "x_a", "e_a_star", "x_b_init", "x_b", "NPV_ea_star", "NPV_eb_star")
 
 row_counter <- 1
 
@@ -281,10 +281,10 @@ matrix_df = dcast(df_inf, x_a ~ x_b, value.var = "e_a_star")
 rownames(matrix_df) = x_a_grid
 matrix_df = matrix_df[, -1]
 
-for(D_ba in seq(0, 1, by = 0.1)) {
+for(M_ba in seq(0, 1, by = 0.1)) {
       
         # Recalculate dependent variables
-        D_bb = 1 - D_ba
+        M_bb = 1 - M_ba
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -323,7 +323,7 @@ for(i in seq_along(x_a_grid)) {
   NPV_eb_star <- NPV_eb_star + V_b_star
   
   # Save results
-  results_matrix_soa[row_counter, ] <- c(D_ba, t, x_a_init, x_a, e_a_star, x_b_init, x_b, NPV_ea_star, NPV_eb_star)
+  results_matrix_soa[row_counter, ] <- c(M_ba, t, x_a_init, x_a, e_a_star, x_b_init, x_b, NPV_ea_star, NPV_eb_star)
   row_counter <- row_counter + 1
     
   # Update the stock for next iteration
@@ -356,8 +356,8 @@ df_results_so_bind = df_results_so %>% rename (x_a_so = x_a) %>% rename (x_b_so 
 df_results_ea_bind = df_results_soa %>% rename (x_a_soa = x_a) %>% rename (x_b_soa = x_b)
 
 # Merging e_a_star values from df_inf into results based on x_a and x_b
-results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("D_ba", "x_a_init", "x_b_init")) %>% 
-  left_join(df_results_ea_bind, by= c("D_ba","x_a_init", "x_b_init")) %>% 
+results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("M_ba", "x_a_init", "x_b_init")) %>% 
+  left_join(df_results_ea_bind, by= c("M_ba","x_a_init", "x_b_init")) %>% 
   mutate(WTP_A = NPV_ea_star-NPV_a_hat,
          WTA_B = NPV_b_hat) %>% 
   mutate(accept = WTP_A-WTA_B) %>% 
@@ -372,7 +372,7 @@ results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("D_ba", "
 
 ```{r}
 
-write.csv(results, here("data","outputs","theta_Dba.csv"), row.names=FALSE)
+write.csv(results, here("data","outputs","low_high","theta_Mba.csv"), row.names=FALSE)
 
 ```
 

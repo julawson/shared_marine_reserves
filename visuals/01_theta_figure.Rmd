@@ -14,14 +14,14 @@ library(akima)
 
 ```{r}
 
-M_ab_sens = read.csv(here("data","outputs","low_low","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
-M_ba_sens = read.csv(here("data","outputs","low_low","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
-D_ab_sens = read.csv(here("data","outputs","low_low","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
-D_ba_sens = read.csv(here("data","outputs","low_low","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
+M_ab_sens = read.csv(here("data","outputs","low_high","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
+M_ba_sens = read.csv(here("data","outputs","low_high","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
+D_ab_sens = read.csv(here("data","outputs","low_high","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
+D_ba_sens = read.csv(here("data","outputs","low_high","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
 
 low_m_low_d = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
-  filter(x_a_init >= 0 & x_a_init <= 0.1) %>% 
-  filter(x_b_init >= 22 & x_b_init <= 23) %>% 
+  filter(x_a_init >= 33 & x_a_init <= 34) %>% 
+  filter(x_b_init >= 88 & x_b_init <= 89) %>% 
   mutate(reserve_npv_coop = -reserve_npv_coop)
 
 ```
@@ -57,24 +57,45 @@ ggplot(low_m_low_d, aes(x = value, y = accept, color = theta)) +
 # Create a new dataframe with separate columns for x_a_non and x_b_non
 theta_stacked <- low_m_low_d %>%  
   select(theta, value, NPV_a_hat, NPV_b_hat, NPV_a_star, NPV_b_star, NPV_ea_star) %>% 
+  #mutate(NPV_a_star_diff = NPV_a_hat - NPV_a_star,
+  #       NPV_ea_star_diff = NPV_a_hat - NPV_ea_star) %>%
+  select(theta, value, NPV_a_hat, NPV_a_star, NPV_ea_star) %>% 
   pivot_longer(cols = c(NPV_a_hat, NPV_a_star, NPV_ea_star), names_to = "Category", values_to = "Value_X")
 
-# Create the stacked bar graph
-ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Theta Value", y = "Net Present Value for Patch A") +
+# Create the geom_point graph
+ggplot(data = theta_stacked, aes(x = value, y = Value_X, color = Category)) +
+  geom_point() +
+  labs(x = "Theta Value", y = "Net Present Value Relative to Cooperative Policy") +
   theme_minimal() +
-  scale_fill_manual(
+  #scale_color_manual(
+  #  name = "Policy Scenario",
+  #  labels = c("Non-Cooperative", "Cooperative Baseline", "Reserve"),
+  #  values = c(NPV_a_star = "#5F5647", NPV_a_hat_diff = "#9B110E", NPV_ea_star_diff = "#FAD510")
+  #) +
+  facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
+    "D_ab" = "Dispersal (A to B)",
+    "D_ba" = "Dispersal (B to A)",
+    "M_ab" = "Movement (A to B)",
+    "M_ba" = "Movement (B to A)"))) +
+  theme(strip.text = element_text(size = 8))
+
+# Create the geom_point graph
+ggplot(data = theta_stacked, aes(x = value, y = Value_X, color = Category)) +
+  geom_point() +
+  labs(x = "Theta Value", y = "Deviation from NPV_a_star") +
+  theme_minimal() +
+  scale_color_manual(
     name = "Policy Scenario",
     labels = c("Non-Cooperative", "Cooperative", "Reserve (Patch A Sole Owner)"),
     values = c("NPV_a_hat" = "#9B110E", "NPV_a_star" = "#5F5647", "NPV_ea_star" = "#FAD510")
   ) +
   facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
-  "D_ab" = "Dispersal (A to B)",
-  "D_ba" = "Dispersal (B to A)",
-  "M_ab" = "Movement (A to B)",
-  "M_ba" = "Movement (B to A)"))) +
+    "D_ab" = "Dispersal (A to B)",
+    "D_ba" = "Dispersal (B to A)",
+    "M_ab" = "Movement (A to B)",
+    "M_ba" = "Movement (B to A)"))) +
   theme(strip.text = element_text(size = 8))
+
 
 # Optimal Policy For Patch B
 
@@ -108,10 +129,6 @@ ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
 ```{r}
 
 # Create a panel plot for each movement and dispersal parameter
-
-pal <- c("#EF5703", "#BDC881", "#A5C2A3")
-
-# Create a new dataframe with separate columns for x_a_non and x_b_non
 theta_stacked <- low_m_low_d %>%
   mutate(x_ab_so = x_a_so + x_b_so) %>% 
   mutate(x_ab_non = x_a_non + x_b_non) %>% 
@@ -124,11 +141,11 @@ ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(x = "Theta Value", y = expression(Total~Equilibrium~Stock~Size~(X[a]~and~X[b]))) +
   theme_minimal() +
-  scale_fill_manual(
-    name = "Policy Scenario",
-    labels = c("Non-Cooperative", "Reserve (Patch A Sole Owner)", "Cooperative"),
-    values = c("x_ab_non" = "#BDC881", "x_ab_so" = "#A5C2A3", "x_ab_res" = "#EF5703")
-  ) +
+  #scale_fill_manual(
+    #name = "Policy Scenario",
+    #labels = c("Non-Cooperative", "Reserve (Patch A Sole Owner)", "Cooperative"),
+    #values = c("x_ab_non" = "#BDC881", "x_ab_so" = "#A5C2A3", "x_ab_res" = "#EF5703")
+  #) +
   facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
   "D_ab" = "Dispersal (A to B)",
   "D_ba" = "Dispersal (B to A)",

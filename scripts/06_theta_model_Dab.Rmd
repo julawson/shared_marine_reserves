@@ -1,5 +1,5 @@
 
-# Basic Grid Model of x_a and x_b
+# Theta Model
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -13,16 +13,17 @@ library(cowplot)
 library(akima)
 ```
 
+
 # Non-Cooperative Scenario
 
 ```{r}
 
 # Initialize data frame for storing results
 
-num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps
-num_cols <- 9
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
+num_cols <- 10  
 results_matrix_non <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_non) <- c("timestep", "x_a_init", "x_a", "e_hat_a", "x_b_init", "x_b", "e_hat_b", "NPV_a_hat", "NPV_b_hat")
+colnames(results_matrix_non) <- c("D_ab", "timestep", "x_a_init", "x_a", "e_hat_a", "x_b_init", "x_b", "e_hat_b", "NPV_a_hat", "NPV_b_hat")
 
 row_counter <- 1
 
@@ -32,6 +33,12 @@ NPV_b_hat_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_a_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_b_hat_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
+
+for(D_ab in seq(0, 1, by = 0.1)) {
+      
+        # Recalculate dependent variables
+        D_aa = 1 - D_ab
+  
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
   for(j in seq_along(x_b_grid)) {
@@ -73,7 +80,7 @@ for(i in seq_along(x_a_grid)) {
   NPV_b_hat <- NPV_b_hat + V_b_hat
   
   # Save results including e_hat_a and e_hat_b
-  results_matrix_non[row_counter, ] <- c(t, x_a_init, x_a, e_hat_values$e_hat_a, x_b_init, x_b, e_hat_values$e_hat_b, NPV_a_hat, NPV_b_hat)
+  results_matrix_non[row_counter, ] <- c(D_ab, t, x_a_init, x_a, e_hat_values$e_hat_a, x_b_init, x_b, e_hat_values$e_hat_b, NPV_a_hat, NPV_b_hat)
   row_counter <- row_counter + 1
     
   # Update the stock for next iteration
@@ -88,6 +95,7 @@ for(i in seq_along(x_a_grid)) {
     
   }
 }
+}
 
 df_results_non = as.data.frame(results_matrix_non) %>% filter(timestep==100) %>% select(-timestep)
 
@@ -99,10 +107,10 @@ df_results_non = as.data.frame(results_matrix_non) %>% filter(timestep==100) %>%
 
 # Initialize data frame for storing results
 
-num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps
-num_cols <- 9
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
+num_cols <- 10  
 results_matrix_so <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_so) <- c("timestep", "x_a_init", "x_a", "e_star_a", "x_b_init", "x_b", "e_star_b", "NPV_a_star", "NPV_b_star")
+colnames(results_matrix_so) <- c("D_ab", "timestep", "x_a_init", "x_a", "e_star_a", "x_b_init", "x_b", "e_star_b", "NPV_a_star", "NPV_b_star")
 
 row_counter <- 1
 
@@ -111,6 +119,11 @@ NPV_a_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 NPV_b_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_a_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_b_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
+
+for(D_ab in seq(0, 1, by = 0.1)) {
+      
+        # Recalculate dependent variables
+        D_aa = 1 - D_ab
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -153,15 +166,14 @@ for(i in seq_along(x_a_grid)) {
   NPV_b_star <- NPV_b_star + V_b_star
   
   # Save results including e_hat_a and e_hat_b
-  results_matrix_so[row_counter, ] <- c(t, x_a_init, x_a, e_star_values$e_star_a, x_b_init, x_b, e_star_values$e_star_b, NPV_a_star, NPV_b_star)
+  results_matrix_so[row_counter, ] <- c(D_ab, t, x_a_init, x_a, e_star_values$e_star_a, x_b_init, x_b, e_star_values$e_star_b, NPV_a_star, NPV_b_star)
   row_counter <- row_counter + 1
-  
+    
   # Update the stock for next iteration
   x_a <- x_a_new
   x_b <- x_b_new
-  
-    }
-    
+}
+
     # Store NPV for the current x_a and x_b combination
     index <- (i - 1) * length(x_b_grid) + j
     NPV_a_star_total[index] <- NPV_a_star
@@ -169,22 +181,16 @@ for(i in seq_along(x_a_grid)) {
     
   }
 }
+}
 
-# View results
-
-df_results_so = as.data.frame(results_matrix_so)  %>% filter(timestep==100) %>% select(-timestep)
+df_results_so = as.data.frame(results_matrix_so) %>% filter(timestep==100) %>% select(-timestep)
+  
 
 ```
 
 # I. Dynamic Programming to find Timestep = 1
 
 ```{r}
-
-size_x_a = 10 #size of the state grid A
-size_x_b = 10 #size of B
-
-x_a_grid = seq(small, k_a,length.out=10)
-x_b_grid = seq(small, k_b, length.out=10)
 
 # Find Patch A Sole Owner Scenario (e_a*)
 
@@ -201,7 +207,7 @@ for(t in T:1) {
       low = 0 #lower bound on escapement in A
       high = x_a #upper bound on escapement in A
       Thing = optim(par=guess, fn=payoff, lower=low, upper=high, x_a=x_a, x_b=x_b, V=V, method='L-BFGS-B')
-      e_a_star = max(Thing$par, 0)
+      e_a_star = Thing$par
       V_star = -Thing$value
       V_next[i,j] = V_star
       df_now = data.frame(time=t, x_a=x_a, x_b=x_b, e_a_star=e_a_star, V_star=V_star)
@@ -211,51 +217,43 @@ for(t in T:1) {
   V = V_next
 }
 
-df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(timestep=1)
+df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) 
 
 ```
 
-
 ```{r}
 
+#df_int = df_inf |> mutate(xab = x_a * x_b) 
 
-size_x_a = 300 #size of the state grid A
-size_x_b = 300 #size of B
+#interp_model <- mgcv::gam(e_a_star ~ s(x_a) + s(x_b) + s(xab), data = df_int)
 
-x_a_grid = seq(small, k_a,length.out=size_x_a)
-x_b_grid = seq(small, k_b, length.out=size_x_b)
+#interp_frame <-
 
-df_int = df_inf |> mutate(xab = x_a * x_b) 
+#    data.frame(x_a = x_a, x_b = x_b, xab = x_a * x_b)
 
-interp_model <- mgcv::gam(e_a_star ~ s(x_a) + s(x_b) + s(xab), data = df_int)
-
-interp_frame <-
-
-    data.frame(x_a = x_a, x_b = x_b, xab = x_a * x_b)
-
-e_a_star <- pmax(min(df_int$e_a_star),predict(interp_model, newdata = interp_frame))
+#e_a_star <- pmax(min(df_int$e_a_star),predict(interp_model, newdata = interp_frame))
 
 # 1. Create a new dataframe for the grid values
-grid_df <- expand.grid(x_a = seq(small, k_a,length.out=size_x_a), x_b = seq(small, k_b,length.out=size_x_b))
+#grid_df <- expand.grid(x_a = seq(small, k_a,length.out=size_x_a), x_b = seq(small, k_b,length.out=size_x_b))
 
 # 2. Calculate the interaction term xab for the grid
-grid_df$xab <- grid_df$x_a * grid_df$x_b
+#grid_df$xab <- grid_df$x_a * grid_df$x_b
 
 # 3. Predict e_a_star for the entire grid
-predicted_e_a_star <- predict(interp_model, newdata = grid_df)
+#predicted_e_a_star <- predict(interp_model, newdata = grid_df)
 
 # 4. Merge the interpolated e_a_star values with df_results_so_ea based on x_a and x_b
-df_e_a_star_interpolated <- merge(grid_df, df_int, by.x = c("x_a", "x_b"), by.y = c("x_a", "x_b"), all.x = TRUE)
+#df_e_a_star_interpolated <- merge(grid_df, df_int, by.x = c("x_a", "x_b"), by.y = c("x_a", "x_b"), all.x = TRUE)
 
 # Replace the NAs in df_results_so_ea_interpolated with the interpolated values
-df_e_a_star_interpolated$e_a_star <- ifelse(is.na(df_e_a_star_interpolated$e_a_star), predicted_e_a_star, df_e_a_star_interpolated$e_a_star)
+#df_e_a_star_interpolated$e_a_star <- ifelse(is.na(df_e_a_star_interpolated$e_a_star), predicted_e_a_star, df_e_a_star_interpolated$e_a_star)
 
 # Replace negative values of e_a_star with 0
-df_e_a_star_interpolated$e_a_star <- pmax(df_e_a_star_interpolated$e_a_star, 0)
+#df_e_a_star_interpolated$e_a_star <- pmax(df_e_a_star_interpolated$e_a_star, 0)
 
-df_e_a_star_int <- df_e_a_star_interpolated %>% select(x_a, x_b, e_a_star)
+#df_e_a_star_int <- df_e_a_star_interpolated %>% select(x_a, x_b, e_a_star)
 
-print(df_e_a_star_int)
+#print(df_e_a_star_int)
 
 ```
 
@@ -265,28 +263,28 @@ print(df_e_a_star_int)
 
 ```{r}
 
-size_x_a = 300 #size of the state grid A
-size_x_b = 300 #size of B
-
-x_a_grid = seq(small, k_a, length.out=size_x_a)
-x_b_grid = seq(small, k_b, length.out=size_x_b)
-
-num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps 
-num_cols <- 8  # Number of variables you are storing
+num_rows <- length(x_a_grid) * length(x_b_grid) * timesteps * length(seq(0, 1, by = 0.1))
+num_cols <- 9  # Number of variables you are storing
 results_matrix_soa <- matrix(NA_real_, nrow = num_rows, ncol = num_cols)
-colnames(results_matrix_soa) <- c("timestep", "x_a_init", "x_a", "e_a_star", "x_b_init", "x_b", "NPV_ea_star", "NPV_eb_star")
+colnames(results_matrix_soa) <- c("D_ab", "timestep", "x_a_init", "x_a", "e_a_star", "x_b_init", "x_b", "NPV_ea_star", "NPV_eb_star")
 
 row_counter <- 1
 
 # Initialize NPV variables and counter
 NPV_ea_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 NPV_eb_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
+
 names(NPV_ea_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_eb_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-matrix_df = dcast(df_e_a_star_interpolated, x_a ~ x_b, value.var = "e_a_star")
+matrix_df = dcast(df_inf, x_a ~ x_b, value.var = "e_a_star")
 rownames(matrix_df) = x_a_grid
 matrix_df = matrix_df[, -1]
+
+for(D_ab in seq(0, 1, by = 0.1)) {
+      
+        # Recalculate dependent variables
+        D_aa = 1 - D_ab
 
 # Grid search over x_a_grid and x_b_grid
 for(i in seq_along(x_a_grid)) {
@@ -325,25 +323,26 @@ for(i in seq_along(x_a_grid)) {
   NPV_eb_star <- NPV_eb_star + V_b_star
   
   # Save results
-  results_matrix_soa[row_counter, ] <- c(t, x_a_init, x_a, e_a_star, x_b_init, x_b, NPV_ea_star, NPV_eb_star)
+  results_matrix_soa[row_counter, ] <- c(D_ab, t, x_a_init, x_a, e_a_star, x_b_init, x_b, NPV_ea_star, NPV_eb_star)
   row_counter <- row_counter + 1
-  
+    
   # Update the stock for next iteration
   x_a <- x_a_new
   x_b <- x_b_new
   
     }
     
-# Store NPV for the current x_a and x_b combination
+    # Store NPV for the current x_a and x_b combination
     index <- (i - 1) * length(x_b_grid) + j
     NPV_ea_star_total[index] <- NPV_ea_star
     NPV_eb_star_total[index] <- NPV_eb_star
   }
 }
+}
 
+# View results
 
-df_results_soa = as.data.frame(results_matrix_soa) %>% filter(timestep==100) %>% select(-timestep) 
-
+df_results_soa = as.data.frame(results_matrix_soa) %>% filter(timestep==100) %>% select(-timestep)
 
 ```
 
@@ -353,68 +352,27 @@ df_results_soa = as.data.frame(results_matrix_soa) %>% filter(timestep==100) %>%
 
 # Changing the name of x_a_init and x_b_init to just x_a and x_b for simplicity. 
 df_results_non_bind = df_results_non %>% rename (x_a_non = x_a) %>% rename (x_b_non = x_b)
-df_results_so_bind = df_results_so  %>% rename (x_a_so = x_a) %>% rename (x_b_so = x_b)
+df_results_so_bind = df_results_so %>% rename (x_a_so = x_a) %>% rename (x_b_so = x_b)
 df_results_ea_bind = df_results_soa %>% rename (x_a_soa = x_a) %>% rename (x_b_soa = x_b)
 
 # Merging e_a_star values from df_inf into results based on x_a and x_b
-results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a_init", "x_b_init")) %>% 
-  left_join(df_results_ea_bind, by= c("x_a_init", "x_b_init")) %>% 
+results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("D_ab", "x_a_init", "x_b_init")) %>% 
+  left_join(df_results_ea_bind, by= c("D_ab","x_a_init", "x_b_init")) %>% 
   mutate(WTP_A = NPV_ea_star-NPV_a_hat,
          WTA_B = NPV_b_hat) %>% 
   mutate(accept = WTP_A-WTA_B) %>% 
-  mutate(reserve_npv_coop = (NPV_ea_star) - (NPV_a_star + NPV_b_star)) %>% 
-  mutate(reserve_npv_non = (NPV_ea_star) - (NPV_a_hat + NPV_b_hat)) %>%
+  mutate(reserve_npv_coop = (NPV_ea_star) - (NPV_a_star + NPV_b_star)) %>% # The difference between the gains under cooperation vs the gains under reserve
+  mutate(reserve_npv_non = (NPV_ea_star) - (NPV_a_hat + NPV_b_hat)) %>% # Same as accept, the difference between the gains under non-coop vs the gains under reserve
+  mutate(coop_npv_non = (NPV_a_star + NPV_b_star) - (NPV_a_hat + NPV_b_hat)) %>% 
   mutate(reserve_vs_non_x = (x_a_soa + x_b_soa) - (x_a_non + x_b_non)) %>% 
   mutate(reserve_vs_coop_x = (x_a_so + x_a_so) - (x_a_non + x_b_non)) 
 
-results_nar <-  results %>% 
-  filter(accept > -1 & accept < 1)
-
-```
-
-# Predict accept = 0
-
-```{r}
-
-#results_int = results %>% rename(x_a = x_a_init) %>% rename(x_b = x_b_init) |> mutate(xab = x_a * x_b) 
-
-#results = results %>% rename(x_a = x_a_init) %>% rename(x_b = x_b_init)
-
-#interp_model <- mgcv::gam(accept ~ s(x_a) + s(x_b) + s(xab), data = results_int)
-
-#interp_frame <-
-
-#    data.frame(x_a = x_a, x_b = x_b, xab = x_a * x_b)
-
-#accept <- pmax(min(results$accept),predict(interp_model, newdata = interp_frame))
-
-# 1. Create a new dataframe for the grid values
-#grid_df <- expand.grid(x_a = seq(0,100, by=0.1), x_b = seq(0,100, by=0.1))
-
-# 2. Calculate the interaction term xab for the grid
-#grid_df$xab <- grid_df$x_a * grid_df$x_b
-
-# 3. Predict e_a_star for the entire grid
-#predicted_accept <- predict(interp_model, newdata = grid_df)
-
-# 4. Merge the interpolated e_a_star values with df_results_so_ea based on x_a and x_b
-#df_results_interpolated <- merge(grid_df, results, by.x = c("x_a", "x_b"), by.y = c("x_a", "x_b"), all.x = TRUE)
-
-# Replace the NAs in df_results_so_ea_interpolated with the interpolated values
-#df_results_interpolated$accept <- ifelse(is.na(df_results_interpolated$accept), predicted_accept, df_results_interpolated$accept)
-
-#df_results_int <- df_results_interpolated %>% select(x_a, x_b, accept) %>% 
-#  filter(accept > -0.005 & accept < 0.005)
-
-#print(df_results_int)
 
 ```
 
 ```{r}
 
-ggplot() +
-  geom_point(data = results, aes(x = x_b_init, y = accept))
+write.csv(results, here("data","outputs","low_high","theta_Dab.csv"), row.names=FALSE)
 
 ```
-
 
