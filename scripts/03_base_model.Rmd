@@ -219,8 +219,8 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(
 ```{r}
 
 
-size_x_a = 300 #size of the state grid A
-size_x_b = 300 #size of B
+size_x_a = 10 #size of the state grid A
+size_x_b = 10 #size of B
 
 x_a_grid = seq(small, k_a,length.out=size_x_a)
 x_b_grid = seq(small, k_b, length.out=size_x_b)
@@ -265,8 +265,8 @@ print(df_e_a_star_int)
 
 ```{r}
 
-size_x_a = 300 #size of the state grid A
-size_x_b = 300 #size of B
+size_x_a = 10 #size of the state grid A
+size_x_b = 10 #size of B
 
 x_a_grid = seq(small, k_a, length.out=size_x_a)
 x_b_grid = seq(small, k_b, length.out=size_x_b)

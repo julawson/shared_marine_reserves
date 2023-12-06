@@ -10,6 +10,7 @@ library(stargazer)
 library(reshape2)
 library(cowplot)
 library(akima)
+library(patchwork)
 ```
 
 ```{r}
@@ -19,43 +20,120 @@ M_ba_sens = read.csv(here("data","outputs","low_low","theta_Mba.csv")) %>% add_c
 D_ab_sens = read.csv(here("data","outputs","low_low","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
 D_ba_sens = read.csv(here("data","outputs","low_low","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
 
-low_m_low_d = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
-  filter(x_a_init >= 0.1 & x_a_init <= 0.1) %>% 
-  filter(x_b_init >= 33 & x_b_init <= 34) %>% 
+df = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
   mutate(reserve_npv_coop = -reserve_npv_coop)
+
+#high_high_df = df %>% add_column(scenario = "highm_highd")
+#low_high_df = df %>% add_column(scenario = "lowm_highd")
+#high_low_df = df %>% add_column(scenario = "highm_lowd")
+#low_low_df = df %>% add_column(scenario = "lowm_lowd")
 
 ```
 
 ```{r}
 
-
 pal <- c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00") #, "#EF5703", "#F21A00", "#A5C2A3", "#BDC881")
 
-ggplot(low_m_low_d, aes(x = value, y = accept, color = theta)) +
+geom_ribbon = high_high_df %>% 
+  group_by(theta, value) %>% 
+  summarize(min_accept = min(accept),
+            max_accept = max(accept),
+            mean_accept = mean(accept),
+            mean_reserve_npv_coop = mean(reserve_npv_coop))
+
+high_high <- ggplot(geom_ribbon, aes(x = value, y = mean_accept, color = theta)) +
   theme_minimal() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  geom_line(aes(x = value, y = reserve_npv_coop), linetype = "dotted", color = "black") + # Dotted line represents the 'value' of an agreement (reserve NPV relative to cooperative solution NPV)
+  geom_line(aes(x = value, y = mean_reserve_npv_coop), linetype = "dotted", color = "black") + # Dotted line represents the 'value' of an agreement (reserve NPV relative to cooperative solution NPV)
   geom_line(linewidth = 1.5) +
+  geom_ribbon(aes(ymin = min_accept, ymax = max_accept), alpha = 0.1, color="lightgrey") +
   labs(x = "Theta Value", y = "Agreement Acceptance") +
   scale_color_manual(
     name = "Theta",
     labels = c("Dispersal (A to B)", "Dispersal (B to A)", "Movement (A to B)", "Movement (B to A)"),
     values = setNames(pal, unique(low_m_low_d$theta))
   ) +
-  facet_wrap(~theta, scales = "free", ncol = 2) +
-  theme(strip.text.x = element_blank())
-  
+  facet_wrap(~theta, scales = "free", ncol = 1) +
+  ggtitle("High Movement, High Dispersal") +
+  theme(strip.text.x = element_blank()) #+
+  #theme(legend.position="none")
+
+```
+# Combined plot of all movement and dispersal parameters
+
+```{r}
+
+combined_plot <- low_low + low_high + high_low + high_high +
+  plot_layout(ncol = 4)
+combined_plot
+
+#ggsave(here("visuals","output","params_summary.pdf"), combined_plot, width = 14, height = 10)
 
 ```
 
 # Conservation Value Plot (NPV)
+
+# For entire system (NPV Coop, NPV Non-coop, NPV Reserve)
+
+```{r}
+
+theta_stacked <- high_high_df %>%  
+  group_by(theta, value) %>% 
+  mutate(NPV_non_diff = NPV_ea_star - reserve_npv_non) %>% 
+  mutate(NPV_coop_diff = NPV_ea_star + reserve_npv_coop) %>% 
+  select(theta, value, NPV_non_diff, NPV_coop_diff, NPV_ea_star) %>% 
+  pivot_longer(cols = c(NPV_non_diff, NPV_coop_diff, NPV_ea_star), names_to = "Category", values_to = "Value_X") %>% 
+  group_by(theta, value, Category) %>% 
+  summarize(mean_Value_X = mean(Value_X))
+
+high_high_npv <- ggplot(data = theta_stacked, aes(x = value, y = mean_Value_X, color = Category, shape = Category)) +
+  geom_point() +
+  guides(shape = FALSE) +
+  geom_line(aes(group = value)) +
+  labs(x = "Theta Value", y = "Net Present Value") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  theme_minimal() +
+  scale_color_manual(
+    name = "Policy Scenario",
+    labels = c("Coop Difference", "Reserve NPV", "Non-Coop Difference"),
+    values = c(NPV_non_diff = "#5F5647", NPV_coop_diff = "#9B110E", NPV_ea_star = "#FAD510")
+  ) +
+  scale_shape_manual(
+    name = "Category",
+    labels = c("NPV_non_diff", "NPV_coop_diff", "NPV_ea_star"),
+    values = c(NPV_non_diff = 23, NPV_coop_diff = 23, NPV_ea_star = 19)
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 1, labeller = labeller(theta = c(
+    "D_ab" = "Dispersal (A to B)",
+    "D_ba" = "Dispersal (B to A)",
+    "M_ab" = "Movement (A to B)",
+    "M_ba" = "Movement (B to A)"))) +
+  ggtitle("High Movement, High Dispersal") +
+  theme(strip.text = element_text(size = 8)) #+
+  #theme(legend.position="none")
+
+
+```
+```{r}
+
+combined_plot_npv <- low_low_npv + low_high_npv + high_low_npv + high_high_npv +
+  plot_layout(ncol = 4)
+combined_plot_npv
+
+#ggsave(here("visuals","output","npv_summary.pdf"), combined_plot_npv, width = 14, height = 10)
+
+```
+
+# Conservation Value Plot (NPV)
+
+# For each inidividual Patch
 
 ```{r}
 
 # Optimal Policy For Patch A
 
 # Create a new dataframe with separate columns for x_a_non and x_b_non
-theta_stacked <- low_m_low_d %>%  
+theta_stacked <- high_high_df %>%  
   select(theta, value, NPV_a_hat, NPV_b_hat, NPV_a_star, NPV_b_star, NPV_ea_star) %>% 
   #mutate(NPV_a_star_diff = NPV_a_hat - NPV_a_star,
   #       NPV_ea_star_diff = NPV_a_hat - NPV_ea_star) %>%
@@ -129,28 +207,45 @@ ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
 ```{r}
 
 # Create a panel plot for each movement and dispersal parameter
-theta_stacked <- low_m_low_d %>%
+theta_stacked <- low_low_df %>%
   mutate(x_ab_so = x_a_so + x_b_so) %>% 
   mutate(x_ab_non = x_a_non + x_b_non) %>% 
   mutate(x_ab_res = x_a_soa + x_b_soa) %>% 
   select(theta, value, x_ab_non, x_ab_so, x_ab_res) %>% 
-  pivot_longer(cols = c(x_ab_non, x_ab_so, x_ab_res), names_to = "Category", values_to = "Value_X")
+  pivot_longer(cols = c(x_ab_non, x_ab_so, x_ab_res), names_to = "Category", values_to = "Value_X") %>% 
+  group_by(theta, value, Category) %>% 
+  summarize(min_Value_X = min(Value_X),
+            mean_Value_X = mean(Value_X),
+            max_Value_X = max(Value_X))
 
 # Create the stacked bar graph
-ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Theta Value", y = expression(Total~Equilibrium~Stock~Size~(X[a]~and~X[b]))) +
+low_low_stock <- ggplot() +
+  geom_point(data = theta_stacked, aes(x = value, y = mean_Value_X, color = Category)) +
+  labs(x = "Theta Value", y = "Mean Total Equilibrium Stock (Both Patches)") +
   theme_minimal() +
-  #scale_fill_manual(
-    #name = "Policy Scenario",
-    #labels = c("Non-Cooperative", "Reserve (Patch A Sole Owner)", "Cooperative"),
-    #values = c("x_ab_non" = "#BDC881", "x_ab_so" = "#A5C2A3", "x_ab_res" = "#EF5703")
-  #) +
-  facet_wrap(~theta, scales = "free", ncol = 2, labeller = labeller(theta = c(
+  scale_color_manual(
+    name = "Policy Scenario",
+    labels = c("Non-Cooperative", "Reserve", "Cooperative"),
+    values = c("x_ab_non" = "#BDC881", "x_ab_so" = "#A5C2A3", "x_ab_res" = "#EF5703")
+  ) +
+  facet_wrap(~theta, scales = "free", ncol = 1, labeller = labeller(theta = c(
   "D_ab" = "Dispersal (A to B)",
   "D_ba" = "Dispersal (B to A)",
   "M_ab" = "Movement (A to B)",
   "M_ba" = "Movement (B to A)"))) +
-  theme(strip.text = element_text(size = 8))
+  ggtitle("Low Movement, Low Dispersal") +
+  theme(strip.text = element_text(size = 8)) +
+  scale_y_continuous(limits = c(0, NA)) +
+  theme(legend.position="none") 
+
+```
+
+```{r}
+
+combined_plot_stock <- low_low_stock + low_high_stock + high_low_stock + high_high_stock +
+  plot_layout(ncol = 4)
+combined_plot_stock
+
+#ggsave(here("visuals","output","stock_summary.pdf"), combined_plot_stock, width = 14, height = 10)
 
 ```
