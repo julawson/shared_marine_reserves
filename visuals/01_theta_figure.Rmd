@@ -15,10 +15,10 @@ library(patchwork)
 
 ```{r}
 
-M_ab_sens = read.csv(here("data","outputs","low_low","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
-M_ba_sens = read.csv(here("data","outputs","low_low","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
-D_ab_sens = read.csv(here("data","outputs","low_low","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
-D_ba_sens = read.csv(here("data","outputs","low_low","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
+M_ab_sens = read.csv(here("data","outputs","high_high","theta_Mab.csv")) %>% add_column(theta = "M_ab") %>% rename(value = M_ab)
+M_ba_sens = read.csv(here("data","outputs","high_high","theta_Mba.csv")) %>% add_column(theta = "M_ba") %>% rename(value = M_ba)
+D_ab_sens = read.csv(here("data","outputs","high_high","theta_Dab.csv")) %>% add_column(theta = "D_ab") %>% rename(value = D_ab)
+D_ba_sens = read.csv(here("data","outputs","high_high","theta_Dba.csv")) %>% add_column(theta = "D_ba") %>% rename(value = D_ba)
 
 df = bind_rows(M_ab_sens, M_ba_sens, D_ab_sens, D_ba_sens) %>% 
   mutate(reserve_npv_coop = -reserve_npv_coop)
@@ -41,22 +41,22 @@ geom_ribbon = high_high_df %>%
             mean_accept = mean(accept),
             mean_reserve_npv_coop = mean(reserve_npv_coop))
 
-high_high <- ggplot(geom_ribbon, aes(x = value, y = mean_accept, color = theta)) +
+ggplot(geom_ribbon, aes(x = value, y = mean_accept, color = theta)) +
   theme_minimal() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   geom_line(aes(x = value, y = mean_reserve_npv_coop), linetype = "dotted", color = "black") + # Dotted line represents the 'value' of an agreement (reserve NPV relative to cooperative solution NPV)
-  geom_line(linewidth = 1.5) +
+  geom_line(size=1.5) +
   geom_ribbon(aes(ymin = min_accept, ymax = max_accept), alpha = 0.1, color="lightgrey") +
   labs(x = "Theta Value", y = "Agreement Acceptance") +
   scale_color_manual(
     name = "Theta",
     labels = c("Dispersal (A to B)", "Dispersal (B to A)", "Movement (A to B)", "Movement (B to A)"),
-    values = setNames(pal, unique(low_m_low_d$theta))
+    values = setNames(pal, unique(low_low_df$theta))
   ) +
   facet_wrap(~theta, scales = "free", ncol = 1) +
   ggtitle("High Movement, High Dispersal") +
-  theme(strip.text.x = element_blank()) #+
-  #theme(legend.position="none")
+  theme(strip.text.x = element_blank()) +
+  theme(legend.position="none")
 
 ```
 # Combined plot of all movement and dispersal parameters
@@ -108,9 +108,9 @@ high_high_npv <- ggplot(data = theta_stacked, aes(x = value, y = mean_Value_X, c
     "D_ba" = "Dispersal (B to A)",
     "M_ab" = "Movement (A to B)",
     "M_ba" = "Movement (B to A)"))) +
-  ggtitle("High Movement, High Dispersal") +
-  theme(strip.text = element_text(size = 8)) #+
-  #theme(legend.position="none")
+  #ggtitle("High Movement, High Dispersal") +
+  theme(strip.text = element_text(size = 8)) +
+  theme(legend.position="none")
 
 
 ```
@@ -207,7 +207,7 @@ ggplot(data = theta_stacked, aes(x = value, y = Value_X, fill = Category)) +
 ```{r}
 
 # Create a panel plot for each movement and dispersal parameter
-theta_stacked <- low_low_df %>%
+theta_stacked <- high_high_df %>%
   mutate(x_ab_so = x_a_so + x_b_so) %>% 
   mutate(x_ab_non = x_a_non + x_b_non) %>% 
   mutate(x_ab_res = x_a_soa + x_b_soa) %>% 
@@ -219,7 +219,7 @@ theta_stacked <- low_low_df %>%
             max_Value_X = max(Value_X))
 
 # Create the stacked bar graph
-low_low_stock <- ggplot() +
+high_high_stock <- ggplot() +
   geom_point(data = theta_stacked, aes(x = value, y = mean_Value_X, color = Category)) +
   labs(x = "Theta Value", y = "Mean Total Equilibrium Stock (Both Patches)") +
   theme_minimal() +
@@ -233,7 +233,7 @@ low_low_stock <- ggplot() +
   "D_ba" = "Dispersal (B to A)",
   "M_ab" = "Movement (A to B)",
   "M_ba" = "Movement (B to A)"))) +
-  ggtitle("Low Movement, Low Dispersal") +
+  #ggtitle("Low Movement, Low Dispersal") +
   theme(strip.text = element_text(size = 8)) +
   scale_y_continuous(limits = c(0, NA)) +
   theme(legend.position="none") 
@@ -247,5 +247,17 @@ combined_plot_stock <- low_low_stock + low_high_stock + high_low_stock + high_hi
 combined_plot_stock
 
 #ggsave(here("visuals","output","stock_summary.pdf"), combined_plot_stock, width = 14, height = 10)
+
+```
+# Individual Stock Combination Plots
+
+```{r}
+
+high_high_comp <- high_high + high_high_stock + high_high_npv +
+  plot_layout(ncol = 3)
+
+high_high_comp
+
+#ggsave(here("visuals","output","high_high_summary.pdf"), high_high_comp, width = 14, height = 10)
 
 ```
