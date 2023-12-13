@@ -219,8 +219,8 @@ df_inf = df_all %>% filter(time==1) %>% select(-time, -V_star) # %>% add_column(
 ```{r}
 
 
-size_x_a = 10 #size of the state grid A
-size_x_b = 10 #size of B
+size_x_a = 100 #size of the state grid A
+size_x_b = 100 #size of B
 
 x_a_grid = seq(small, k_a,length.out=size_x_a)
 x_b_grid = seq(small, k_b, length.out=size_x_b)
@@ -265,8 +265,8 @@ print(df_e_a_star_int)
 
 ```{r}
 
-size_x_a = 10 #size of the state grid A
-size_x_b = 10 #size of B
+size_x_a = 100 #size of the state grid A
+size_x_b = 100 #size of B
 
 x_a_grid = seq(small, k_a, length.out=size_x_a)
 x_b_grid = seq(small, k_b, length.out=size_x_b)
@@ -284,7 +284,7 @@ NPV_eb_star_total <- numeric(length = length(x_a_grid) * length(x_b_grid))
 names(NPV_ea_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 names(NPV_eb_star_total) <- paste0("x_a", 1:length(x_a_grid), "_x_b", 1:length(x_b_grid))
 
-matrix_df = dcast(df_e_a_star_interpolated, x_a ~ x_b, value.var = "e_a_star")
+matrix_df = dcast(df_e_a_star_int, x_a ~ x_b, value.var = "e_a_star")
 rownames(matrix_df) = x_a_grid
 matrix_df = matrix_df[, -1]
 
@@ -368,7 +368,9 @@ results <- df_results_non_bind %>% left_join(df_results_so_bind, by= c("x_a_init
   mutate(reserve_vs_coop_x = (x_a_so + x_a_so) - (x_a_non + x_b_non)) 
 
 results_nar <-  results %>% 
-  filter(accept > -1 & accept < 1)
+  filter(accept > -100 & accept < 100)
+
+#write.csv(results, here("data","outputs","theta_test.csv"), row.names=FALSE)
 
 ```
 
@@ -413,7 +415,7 @@ results_nar <-  results %>%
 ```{r}
 
 ggplot() +
-  geom_point(data = results, aes(x = x_b_init, y = accept))
+  geom_point(data = results, aes(x = x_a_init, y = accept))
 
 ```
 

@@ -9,12 +9,12 @@ k_b = 100
 r_b = 0.6
 
 # Movement Parameters
-M_ab = 0.8 # Adult movement A -> B 
-M_ba = 0.8 # Adult movement B -> A
+M_ab = 0.25 # Adult movement A -> B 
+M_ba = 0.25 # Adult movement B -> A
 M_aa = 1 - M_ab
 M_bb = 1 - M_ba
-D_ab = 0.2 # Larval dispersal A -> B
-D_ba = 0.2 # Larval dispersal B -> A
+D_ab = 0.4 # Larval dispersal A -> B
+D_ba = 0.3 # Larval dispersal B -> A
 D_aa = 1 - D_ab
 D_bb = 1 - D_ba
 
@@ -40,8 +40,8 @@ c_b = 20
 delta = 0.95
 
 # Adaptive parameters
-size_x_a = 10 #size of the state grid A
-size_x_b = 10 #size of B
+size_x_a = 100 #size of the state grid A
+size_x_b = 100 #size of B
 
 T = 100 #time horizon for backward induction
 
